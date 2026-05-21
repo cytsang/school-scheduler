@@ -127,22 +127,23 @@
 
             <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex-1 flex flex-col">
                 <div class="flex-1 overflow-auto">
-                    <table class="w-full text-left border-collapse table-fixed min-w-[950px]">
+                    <table class="w-full text-left border-collapse table-fixed min-w-[1050px]">
                         <thead>
                             <tr class="bg-slate-900 text-slate-200 text-[11px] uppercase tracking-wider sticky top-0 z-20 h-10">
-                                <th class="w-[8%] pl-4 border-b border-slate-800">Session</th>
-                                <th class="w-[9%] border-b border-slate-800">Date/Blk</th>
-                                <th class="w-[5%] border-b border-slate-800 text-center">Form</th>
-                                <th class="w-[18%] border-b border-slate-800 px-2">Subject Title</th>
-                                <th class="w-[18%] border-b border-slate-800 px-2">Venue Location</th>
-                                <th class="w-[14%] border-b border-slate-800 px-2">Required Post</th>
-                                <th class="w-[12%] border-b border-slate-800 px-2">Time / Weight</th>
+                                <th class="w-[6%] pl-4 border-b border-slate-800">Session</th>
+                                <th class="w-[8%] border-b border-slate-800">Date/Blk</th>
+                                <th class="w-[4%] border-b border-slate-800 text-center">Form</th>
+                                <th class="w-[16%] border-b border-slate-800 px-2">Subject Title</th>
+                                <th class="w-[14%] border-b border-slate-800 px-2">Venue Location</th>
+                                <th class="w-[13%] border-b border-slate-800 px-2">Exam Time</th>
+                                <th class="w-[13%] border-b border-slate-800 px-2">Required Post</th>
+                                <th class="w-[10%] border-b border-slate-800 px-2">Time/Weight</th>
                                 <th class="w-[16%] pr-4 border-b border-slate-800 px-2">Assigned Staff Target Placement</th>
                             </tr>
                         </thead>
                         <tbody id="table-canvas-body" class="text-xs divide-y divide-slate-200">
                             <tr>
-                                <td colspan="8" class="text-center p-20 text-slate-400 italic font-medium">
+                                <td colspan="9" class="text-center p-20 text-slate-400 italic font-medium">
                                     No data loaded yet. Follow Steps 1 & 2 to upload your local Excel template workbook structure.
                                 </td>
                             </tr>
@@ -170,7 +171,7 @@
             document.getElementById("file-upload-label").innerText = `📂 Processing: ${file.name}...`;
             
             document.getElementById("table-canvas-body").innerHTML = `
-                <tr><td colspan="8" class="text-center p-20 bg-white font-mono uppercase tracking-widest text-slate-400">
+                <tr><td colspan="9" class="text-center p-20 bg-white font-mono uppercase tracking-widest text-slate-400">
                     <span class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>
                     Running Local Client-Side Calculation Engine Splits...
                 </td></tr>`;
@@ -450,7 +451,7 @@
             return { role: role, key: key, time: time, weight: weight, staff: null, pinned: false };
         }
 
-        function getBlockSegment(timeStr) {
+        get_block: function getBlockSegment(timeStr) {
             const hour = parseInt(timeStr.split(":")[0], 10);
             if (hour < 10) return "B1";
             if (hour < 13) return "B2";
@@ -691,7 +692,7 @@
             });
 
             if (filteredSessions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center p-12 text-slate-400 italic">No matches found.</td></tr>`; return;
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-slate-400 italic">No matches found.</td></tr>`; return;
             }
 
             const displayedSessions = sortSessionsChronologically([...filteredSessions]);
@@ -715,22 +716,22 @@
                           durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Cross-check mismatch! Check Excel Master tab values row alignment.">⚠️ ${session.duration.toFixed(2)}h</span>`;
                         }
 
-                        // FIXED METRIC: Forces exact percent alignments mapping down to match header coordinates perfectly
+                        // FIXED METRIC: Proportions perfectly mirror the updated 9-column headers layout configuration
                         structuralCellsBundleHTML = `
-                            <td class="w-[8%] pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white truncate" rowspan="${totalPostRowsCount}">${session.id}</td>
-                            <td class="w-[9%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
-                            <td class="w-[5%] border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700 truncate" rowspan="${totalPostRowsCount}">${session.form}</td>
-                            <td class="w-[18%] border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.subject}<br>${lockBadge}</td>
-                            <td class="w-[18%] border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
-                            <td class="w-[14%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate" rowspan="${totalPostRowsCount}">${session.timeWindow}<br>${durationDisplayBlock}</td>
+                            <td class="w-[6%] pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white truncate" rowspan="${totalPostRowsCount}">${session.id}</td>
+                            <td class="w-[8%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
+                            <td class="w-[4%] border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700 truncate" rowspan="${totalPostRowsCount}">${session.form}</td>
+                            <td class="w-[16%] border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.subject}<br>${lockBadge}</td>
+                            <td class="w-[14%] border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
+                            <td class="w-[13%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate" rowspan="${totalPostRowsCount}">${session.timeWindow}<br>${durationDisplayBlock}</td>
                         `;
                     }
 
                     rowTr.innerHTML = `
                         ${structuralCellsBundleHTML}
-                        <td class="w-[14%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate">${post.role}</td>
-                        <td class="w-[12%] border-r border-slate-200 px-2 font-mono text-slate-400 align-middle truncate">${post.time}<br><span class="text-slate-500 font-bold">(${post.weight.toFixed(2)}h)</span></td>
-                        <td class="w-[16%] pr-4 pl-2 align-middle max-w-xs">
+                        <td class="w-[13%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate">${post.role}</td>
+                        <td class="w-[10%] border-r border-slate-200 px-2 font-mono text-slate-400 align-middle truncate">${post.time}<br><span class="text-slate-500 font-bold">(${post.weight.toFixed(2)}h)</span></td>
+                        <td class="w-[16%] pr-4 pl-2 align-middle">
                             <div class="dropzone border border-dashed border-slate-300 rounded-lg h-7 bg-white flex items-center justify-center relative transition-all w-full" data-sid="${session.id}" data-key="${post.key}">
                                  ${post.staff ? `
                                     <div class="absolute inset-0 bg-blue-50 text-blue-900 px-2 flex items-center justify-between font-bold border border-blue-200 rounded-lg text-[11px] overflow-hidden ${post.pinned ? 'pinned-card' : ''}">
