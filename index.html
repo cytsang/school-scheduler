@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Exam Invigilation Scheduler Workspace</title>
+    <title>Automated School Invigilation Workspace</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         .drag-over { border: 2px dashed #2563eb !important; background-color: #eff6ff !important; }
@@ -14,19 +14,20 @@
 
     <header class="bg-slate-900 text-white px-6 py-4 shadow-lg flex justify-between items-center shrink-0">
         <div>
-            <h1 class="text-lg font-bold tracking-tight">Exam Invigilation Management Dashboard</h1>
-            <p class="text-xs text-slate-400">Connected System Mode Integration Platform</p>
+            <h1 class="text-lg font-bold tracking-tight">Automated Exam Invigilation Engine</h1>
+            <p class="text-xs text-slate-400">Google Sheets Managed Core Logic Workspace</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">📊 Export Portfolio by Form</button>
-            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">👤 Export Portfolio by Teacher</button>
+            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
+            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
         </div>
     </header>
 
     <section class="bg-white p-3 border-b border-slate-200 shadow-xs flex items-center gap-3 shrink-0">
         <label class="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">API Endpoint:</label>
-        <input type="text" id="script-url" class="flex-1 bg-slate-50 border border-slate-300 text-xs px-3 py-2 rounded-lg font-mono text-slate-600 focus:outline-blue-500" placeholder="Paste your published Google Apps Script web application connection macro URL link string here..." />
-        <button onclick="fetchSheetSchema()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all cursor-pointer">Sync Database Rows</button>
+        <input type="text" id="script-url" class="flex-[2] bg-slate-50 border border-slate-300 text-xs px-3 py-2 rounded-lg font-mono text-slate-600 focus:outline-blue-500" placeholder="Paste your published Google Apps Script URL here..." />
+        <button onclick="fetchSheetSchema()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all cursor-pointer">1. Fetch Sheet Data</button>
+        <button onclick="runAutoScheduler()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all cursor-pointer shadow-md">⚡ 2. Run Auto-Scheduler</button>
     </section>
 
     <div class="flex flex-1 overflow-hidden">
@@ -35,7 +36,7 @@
             <div class="flex flex-col flex-1 overflow-hidden">
                 <div class="mb-3">
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Faculty Roster & Burden Metrics</h2>
-                    <p class="text-[11px] text-slate-400 mt-0.5">Drag names out to fill vacancies. Limits: Max 1 duty/day. Fairness target spread limit: 0.5h max variance window.</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Drag to fine-tune results. Limits: Max 1 duty/day. Target spread limit: 0.5h max variance window.</p>
                 </div>
                 
                 <div id="roster-box" class="space-y-2 overflow-y-auto pr-1 flex-1">
@@ -59,14 +60,14 @@
                 <div class="xl:col-span-2 flex flex-col items-center justify-center p-20 border-2 border-dashed border-slate-200 rounded-2xl bg-white text-slate-400">
                     <span class="text-4xl mb-2">📊</span>
                     <p class="text-sm font-medium">Canvas Workspace Blank</p>
-                    <p class="text-xs text-slate-400 mt-0.5">Input your target secure Google Sheets web endpoint string above and click sync to begin.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Step 1: Click "Fetch Sheet Data" to populate your parameters.</p>
                 </div>
             </div>
         </main>
     </div>
 
     <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
-        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Constraint condition block alert notification text strings.</span>
+        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Constraint flag notice.</span>
     </div>
 
     <script>
@@ -86,7 +87,6 @@
             try {
                 const res = await fetch(endpoint);
                 const payload = await res.json();
-                
                 if (payload.error) throw new Error(payload.error);
                 
                 staffRoster = payload.teachers;
@@ -94,19 +94,82 @@
                 
                 refreshAppPipeline();
             } catch (err) {
-                alert("Database Synchronization Fault:\n" + err.message + "\n\nVerify sheet tab nomenclature structures match requirements.");
-                document.getElementById("grid-canvas").innerHTML = `<div class='xl:col-span-2 text-center text-xs text-red-500 p-10 bg-white border border-red-200 rounded-xl font-mono'>Failed to sync: ${err.message}</div>`;
+                alert("Database Synchronization Fault:\n" + err.message);
             }
         }
 
+        // --- THE AUTOMATED CORE SCHEDULER ENGINE ---
+        function runAutoScheduler() {
+            if (sessionsData.length === 0) return alert("Please fetch spreadsheet data first before triggering the scheduler!");
+
+            // Clear out any previous non-pinned (automatically generated) duties to start fresh
+            sessionsData.forEach(session => {
+                session.posts.forEach(post => {
+                    if (!post.pinned) post.staff = null;
+                });
+            });
+
+            // Process exams chronologically to optimize daily limits cleanly
+            const chronologicalSessions = [...sessionsData].sort((a, b) => a.id.localeCompare(b.id));
+
+            for (let session of chronologicalSessions) {
+                for (let post of session.posts) {
+                    if (post.staff) continue; // Skip already pinned pre-assignments
+
+                    computeOperationalHours(); // Dynamic live hours recount to enforce strict fairness targeting
+
+                    // Filter all eligible teachers matching our constraint pipeline
+                    let candidatePool = Object.keys(staffRoster).filter(tName => {
+                        const t = staffRoster[tName];
+
+                        // 1. Enforce availability block rules ('N')
+                        if (t.unavailableBlocks.includes(session.dayBlock)) return false;
+
+                        // 2. Enforce absolute daily cap (Max 1 duty per day string)
+                        if (t.dailyDuties && t.dailyDuties[session.dateString] >= 1) return false;
+
+                        // 3. Enforce dynamic subject language rules mapping
+                        if (session.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return false;
+                        if (session.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return false;
+                        if (session.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return false;
+
+                        return true;
+                    });
+
+                    if (candidatePool.length === 0) {
+                        console.warn(`No eligible candidates found for ${session.id} - ${post.role}`);
+                        continue; // If stuck, leave vacant for human drag-and-drop rescue intervention
+                    }
+
+                    // Sort candidates to implement strict fairness.
+                    // Prioritize teachers with fewer total hours accumulated so far.
+                    // Introduce a tiny random element to break even hours and prevent matching alphabetical assignments.
+                    candidatePool.sort((a, b) => {
+                        const scoreA = staffRoster[a].totalHours + (Math.random() * 0.01);
+                        const scoreB = staffRoster[b].totalHours + (Math.random() * 0.01);
+                        return scoreA - scoreB;
+                    });
+
+                    // Assign the best candidate
+                    post.staff = candidatePool[0];
+                    
+                    // Immediately account for this temporary memory assignment to prevent day double-booking
+                    if (!staffRoster[post.staff].dailyDuties) staffRoster[post.staff].dailyDuties = {};
+                    if (!staffRoster[post.staff].dailyDuties[session.dateString]) staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                    staffRoster[post.staff].dailyDuties[session.dateString]++;
+                }
+            }
+
+            refreshAppPipeline();
+            fireToast("Auto-scheduling calculation sequence completed successfully ✓");
+        }
+
         function computeOperationalHours() {
-            // Reset active operational accumulation profiles arrays back to original baseline limits
             Object.keys(staffRoster).forEach(name => {
                 staffRoster[name].totalHours = staffRoster[name].extraHours; // Includes structural +1.0h baseline offset for discipline members
                 staffRoster[name].dailyDuties = {};
             });
 
-            // Map and calculate running task parameters
             sessionsData.forEach(session => {
                 session.posts.forEach(post => {
                     if (post.staff && staffRoster[post.staff]) {
@@ -173,10 +236,7 @@
             const canvas = document.getElementById("grid-canvas");
             canvas.innerHTML = "";
 
-            if (sessionsData.length === 0) {
-                canvas.innerHTML = "<p class='text-slate-400 italic text-xs text-center p-10 xl:col-span-2'>No active exams loaded.</p>";
-                return;
-            }
+            if (sessionsData.length === 0) return;
 
             sessionsData.forEach(session => {
                 const panel = document.createElement("div");
@@ -241,20 +301,12 @@
             const p = s.posts.find(y => y.key === postKey);
             const t = staffRoster[teacherName];
 
-            // 1. Availability Rule Enforcement Constraint
-            if (t.unavailableBlocks.includes(s.dayBlock)) {
-                return fireToast(`Conflict: ${teacherName} is explicitly unavailable during time-window block row: [${s.dayBlock}]`);
-            }
+            if (t.unavailableBlocks.includes(s.dayBlock)) return fireToast(`Conflict: ${teacherName} is unavailable during block: [${s.dayBlock}]`);
+            if (t.dailyDuties[s.dateString] >= 1) return fireToast(`Conflict: ${teacherName} already has a duty assigned on: ${s.dateString}`);
 
-            // 2. Day Assignment Cap Rule (Max 1 duty per unique date string assignment)
-            if (t.dailyDuties[s.dateString] && t.dailyDuties[s.dateString] >= 1) {
-                return fireToast(`Conflict: Allocation Max Limit! ${teacherName} already has an active allocation assigned on date: ${s.dateString}`);
-            }
-
-            // 3. Relational Operational Session Rules Verification Filter Constraints
-            if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return fireToast(`Rule Violation: Target exam session strictly requires a Chinese Teacher.`);
-            if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return fireToast(`Rule Violation: Target exam session strictly requires an English Teacher.`);
-            if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths)     return fireToast(`Rule Violation: Target exam session strictly requires a Mathematics Teacher.`);
+            if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return fireToast(`Rule Violation: Target exam session requires a Chinese Teacher.`);
+            if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return fireToast(`Rule Violation: Target exam session requires an English Teacher.`);
+            if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths)     return fireToast(`Rule Violation: Target exam session requires a Mathematics Teacher.`);
 
             p.staff = teacherName;
             refreshAppPipeline();
@@ -280,12 +332,10 @@
 
         function downloadReport(reportType) {
             if (sessionsData.length === 0) return alert("Ensure a database has been actively parsed to populate reports maps structures.");
-            
             let csv = "data:text/csv;charset=utf-8,";
             
             if (reportType === 'form') {
                 csv += "Form,Date,Time Window,Subject,Venue,Required Post Character Role,Assigned Staff Name\n";
-                // Sort array chronologically by Form then Date sequence structures
                 const sorted = [...sessionsData].sort((a,b) => String(a.form).localeCompare(String(b.form)) || String(a.dateString).localeCompare(String(b.dateString)));
                 sorted.forEach(s => {
                     s.posts.forEach(p => {
