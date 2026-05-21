@@ -183,19 +183,30 @@
             }
         }
 
-        // --- HELPER METRIC: CHRONOLOGICAL TIME CONVERSION SORT MATRIX ---
-        // Converts "15/6" -> Value weight factor to ensure correct temporal ordering
+        // --- DEFINITIVE FIX: TRUE CHRONOLOGICAL MONTH/DAY CALENDAR SORT WEIGHT GENERATORS ---
         function getDateSortWeight(dateString) {
             if (!dateString) return 0;
-            const parts = dateString.split("/");
-            const day = parseInt(parts[0], 10) || 0;
-            const month = parseInt(parts[1], 10) || 0;
-            return (month * 100) + day; // e.g., "8/6" -> 608, "15/6" -> 615
+            // Cleans out custom rendering strings like "6月12日" or "12/6" into clear numerical variables
+            const cleanStr = dateString.replace(/月|日/g, "/");
+            const parts = cleanStr.split("/");
+            
+            let day = parseInt(parts[0], 10);
+            let month = parseInt(parts[1], 10);
+            
+            // Fallback strategy if raw dates drop down matching your internal data format: e.g., "0608"
+            if (isNaN(day) || !month) {
+                const rawNum = dateString.match(/\d+/);
+                if (rawNum && rawNum[0].length === 4) {
+                    month = parseInt(rawNum[0].substring(0, 2), 10);
+                    day = parseInt(rawNum[0].substring(2, 4), 10);
+                }
+            }
+            return (month * 100) + day; // 6/8 -> 608, 6/15 -> 615. Guarantees 608 sorts before 615!
         }
 
         function getTimeSortWeight(timeWindowString) {
             if (!timeWindowString) return 0;
-            const baseStart = timeWindowString.split("-")[0].trim(); // Extract e.g. "08:15"
+            const baseStart = timeWindowString.split("-")[0].trim(); 
             const parts = baseStart.split(":");
             const hr = parseInt(parts[0], 10) || 0;
             const min = parseInt(parts[1], 10) || 0;
@@ -228,15 +239,16 @@
             
             sessionsData.forEach(s => {
                 if (s.dateString) uniqueDaysSet.add(s.dateString);
-                if (s.form) uniqueFormsSet.add(s.form);
+                if (s.form && s.form !== "J" && s.form !== "S") uniqueFormsSet.add(s.form);
             });
             
-            // FIXED CHRONOLOGICAL DROP-DOWN SORT: Order days strictly by timeline weight mapping
+            // Fix 1: Sort day entries strictly using numerical weight values
             const sortedDays = [...uniqueDaysSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
             sortedDays.forEach(day => {
                 daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
             });
             
+            // Fix 2: Keep selection menu containing clean options only (1, 2, 3, 4, 5, 6)
             const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
             sortedForms.forEach(form => {
                 formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
@@ -318,7 +330,6 @@
                     });
                 });
 
-                // Maintain chronological logic baseline paths, adding shuffling adjustments selectively on subsequent iterations
                 let chronologicalSessions = [...sessionsData];
                 if (attempt > 1) {
                     chronologicalSessions.sort(() => Math.random() - 0.5);
@@ -457,6 +468,7 @@
             });
         }
 
+        // --- UPDATED RENDERING ENGINE WITH COMBINED FORM MATCHING MECHANICS ---
         function drawGridCanvas() {
             const tbody = document.getElementById("table-canvas-body");
             tbody.innerHTML = "";
@@ -465,7 +477,22 @@
 
             const filteredSessions = sessionsData.filter(session => {
                 if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
-                if (activeFormFilter !== "ALL" && session.form !== activeFormFilter) return false;
+                
+                // --- REVOLUTIONARY IMPLEMENTATION: COMBINED FORM SELECTION PARSER (J & S INTERCEPTOR) ---
+                if (activeFormFilter !== "ALL") {
+                    const sessionForm = String(session.form).trim();
+                    const selectedForm = String(activeFormFilter).trim();
+                    
+                    if (sessionForm !== selectedForm) {
+                        if (selectedForm === "1" || selectedForm === "2") {
+                            if (sessionForm !== "J") return false;
+                        } else if (selectedForm === "4" || selectedForm === "5") {
+                            if (sessionForm !== "S") return false;
+                        } else {
+                            return false;
+                        }
+                    }
+                }
                 return true;
             });
 
@@ -474,7 +501,6 @@
                 return;
             }
 
-            // FIXED CHRONOLOGICAL CANVAS MATRIX SORTING OPERATION
             const displayedSessions = sortSessionsChronologically([...filteredSessions]);
 
             displayedSessions.forEach((session) => {
@@ -497,7 +523,7 @@
 
                         structuralCellsBundleHTML = `
                             <td class="pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white" rowspan="${totalPostRowsCount}">${session.id}</td>
-                            <td class="border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight" rowspan="${totalPostRowsCount}">${session.dayBlock.replace(" (", "<br>(")}</td>
+                            <td class="border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
                             <td class="border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700" rowspan="${totalPostRowsCount}">${session.form}</td>
                             <td class="border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">
                                 ${session.subject}
@@ -578,7 +604,7 @@
             if(sessionsData.length > 0) refreshAppPipeline();
         });
 
-        // --- FIXED CHRONOLOGICAL EXPORT SYSTEM GENERATION LOGIC ---
+        // --- UPDATED REPORT GENERATOR: CHRONOLOGICAL STABLE ORDER GUARANTEE ---
         function downloadReport(reportType) {
             if (sessionsData.length === 0) return alert("Ensure a database has been actively parsed first.");
             let csv = "data:text/csv;charset=utf-8,";
@@ -586,7 +612,6 @@
             if (reportType === 'form') {
                 csv += "Form,Date,Time Window,Subject,Venue,Required Post Character Role,Assigned Staff Name\n";
                 
-                // Sort chronologically by Form, then explicitly by calendar date weight structure
                 const sorted = [...sessionsData].sort((a, b) => {
                     const formComp = String(a.form).localeCompare(String(b.form), undefined, {numeric: true});
                     if (formComp !== 0) return formComp;
@@ -606,7 +631,6 @@
                 csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
                 
                 Object.keys(staffRoster).sort().forEach(tName => {
-                    // Gather all duties held by this specific teacher
                     const teacherDuties = [];
                     sessionsData.forEach(s => {
                         s.posts.forEach(p => {
@@ -616,7 +640,7 @@
                         });
                     });
                     
-                    // Sort this individual teacher's row portfolio strictly in calendar order
+                    // Fixed: Force individual staff rosters into stable timeline order
                     teacherDuties.sort((a, b) => {
                         const dateComp = getDateSortWeight(a.session.dateString) - getDateSortWeight(b.session.dateString);
                         if (dateComp !== 0) return dateComp;
