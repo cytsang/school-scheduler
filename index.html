@@ -97,18 +97,14 @@
                     <span class="font-bold text-slate-400 uppercase text-[10px] tracking-wider mr-1">Table Filters:</span>
                     <button id="btn-filter-all" onclick="clearTableFilters()" class="bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors">Show All</button>
                 </div>
-                
                 <div class="h-4 w-px bg-slate-200"></div>
-                
                 <div class="flex items-center gap-1.5">
                     <label for="filter-day" class="font-semibold text-slate-500">Filter by Day:</label>
                     <select id="filter-day" onchange="applyTableFilters()" class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium cursor-pointer focus:outline-blue-500">
                         <option value="ALL">-- All Days --</option>
                     </select>
                 </div>
-
                 <div class="h-4 w-px bg-slate-200"></div>
-
                 <div class="flex items-center gap-1.5">
                     <label for="filter-form" class="font-semibold text-slate-500">Filter by Form:</label>
                     <select id="filter-form" onchange="applyTableFilters()" class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium cursor-pointer focus:outline-blue-500">
@@ -146,7 +142,7 @@
     </div>
 
     <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
-        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Constraint condition boundary alert message.</span>
+        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Constraint alert.</span>
     </div>
 
     <script>
@@ -158,13 +154,13 @@
 
         async function fetchSheetSchema() {
             const endpoint = document.getElementById("script-url").value.trim();
-            if(!endpoint) return alert("Provide your web application macro mapping bridge link address URL first.");
+            if(!endpoint) return alert("Provide your web app URL link first.");
             
             document.getElementById("table-canvas-body").innerHTML = `
                 <tr>
                     <td colspan="8" class="text-center p-20 bg-white font-mono uppercase tracking-widest text-slate-400">
                         <span class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>
-                        Interrogating Spreadsheet Document Records Collections...
+                        Interrogating Spreadsheet Document Records...
                     </td>
                 </tr>`;
             
@@ -183,17 +179,14 @@
             }
         }
 
-        // --- DEFINITIVE FIX: TRUE CHRONOLOGICAL MONTH/DAY CALENDAR SORT WEIGHT GENERATORS ---
         function getDateSortWeight(dateString) {
             if (!dateString) return 0;
-            // Cleans out custom rendering strings like "6月12日" or "12/6" into clear numerical variables
             const cleanStr = dateString.replace(/月|日/g, "/");
             const parts = cleanStr.split("/");
             
             let day = parseInt(parts[0], 10);
             let month = parseInt(parts[1], 10);
             
-            // Fallback strategy if raw dates drop down matching your internal data format: e.g., "0608"
             if (isNaN(day) || !month) {
                 const rawNum = dateString.match(/\d+/);
                 if (rawNum && rawNum[0].length === 4) {
@@ -201,7 +194,7 @@
                     day = parseInt(rawNum[0].substring(2, 4), 10);
                 }
             }
-            return (month * 100) + day; // 6/8 -> 608, 6/15 -> 615. Guarantees 608 sorts before 615!
+            return (month * 100) + day;
         }
 
         function getTimeSortWeight(timeWindowString) {
@@ -242,13 +235,11 @@
                 if (s.form && s.form !== "J" && s.form !== "S") uniqueFormsSet.add(s.form);
             });
             
-            // Fix 1: Sort day entries strictly using numerical weight values
             const sortedDays = [...uniqueDaysSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
             sortedDays.forEach(day => {
                 daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
             });
             
-            // Fix 2: Keep selection menu containing clean options only (1, 2, 3, 4, 5, 6)
             const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
             sortedForms.forEach(form => {
                 formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
@@ -275,11 +266,9 @@
         function clearTableFilters() {
             activeDayFilter = "ALL";
             activeFormFilter = "ALL";
-            
             document.getElementById("filter-day").value = "ALL";
             document.getElementById("filter-form").value = "ALL";
             document.getElementById("btn-filter-all").className = "bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
-            
             drawGridCanvas();
         }
 
@@ -302,13 +291,13 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid structure framework data blue-prints.");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid structures data blueprints.");
                     staffRoster = importedData.staffRoster;
                     sessionsData = importedData.sessionsData;
                     
                     populateFilterDropdownOptions();
                     refreshAppPipeline();
-                    fireToast("Progress save state backup recovery loaded! ✓");
+                    fireToast("Progress backup recovery loaded! ✓");
                 } catch (err) { alert("File processing error:\n" + err.message); }
             };
             reader.readAsText(file);
@@ -316,7 +305,7 @@
         }
 
         function runAutoScheduler() {
-            if (sessionsData.length === 0) return alert("Please fetch sheet parameters before auto-allocation execution routines!");
+            if (sessionsData.length === 0) return alert("Please fetch sheet parameters before auto-allocation routines!");
 
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
             const MAX_ATTEMPTS = 500;
@@ -390,9 +379,9 @@
             }
 
             if (!success) {
-                alert(`⚠️ Hard Fairness Target Unreached:\n\nThe engine executed 500 variants but could not resolve a matrix layout that complies under your selected ${allowedVarianceWindow.toFixed(2)}h tolerance ceiling window rule.\n\n(Best iteration output spread returned a value of: ${finalVariance.toFixed(2)}h).\n\nDisplaying the closest matching alternative layout.`);
+                alert(`⚠️ Hard Fairness Target Unreached:\n\nThe engine executed 500 variants but could not resolve a matrix layout that complies under your selected ${allowedVarianceWindow.toFixed(2)}h tolerance rule window.\n\n(Best iteration spread: ${finalVariance.toFixed(2)}h).\n\nDisplaying closest matching variant.`);
             } else {
-                fireToast(`Auto-scheduling completed within strict variance threshold target ceiling [${allowedVarianceWindow.toFixed(2)}h]! ✓`);
+                fireToast(`Auto-scheduling completed within variance limit [${allowedVarianceWindow.toFixed(2)}h]! ✓`);
             }
 
             refreshAppPipeline();
@@ -468,7 +457,6 @@
             });
         }
 
-        // --- UPDATED RENDERING ENGINE WITH COMBINED FORM MATCHING MECHANICS ---
         function drawGridCanvas() {
             const tbody = document.getElementById("table-canvas-body");
             tbody.innerHTML = "";
@@ -478,7 +466,6 @@
             const filteredSessions = sessionsData.filter(session => {
                 if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
                 
-                // --- REVOLUTIONARY IMPLEMENTATION: COMBINED FORM SELECTION PARSER (J & S INTERCEPTOR) ---
                 if (activeFormFilter !== "ALL") {
                     const sessionForm = String(session.form).trim();
                     const selectedForm = String(activeFormFilter).trim();
@@ -521,6 +508,12 @@
                         if (session.constraintRule === "ONLY_ENGLISH_TEACHERS") lockBadge = `<div class="text-[8px] text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">ENG Required</div>`;
                         if (session.constraintRule === "ONLY_MATHS_TEACHERS")   lockBadge = `<div class="text-[8px] text-teal-600 font-bold bg-teal-50 border border-teal-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">MATH Required</div>`;
 
+                        // NEW: Formats custom warning indicators if a mismatch is flagged on a sheet row line
+                        let durationDisplayBlock = `<span class="text-slate-500 font-bold">(${session.duration.toFixed(2)}h)</span>`;
+                        if (session.durationWarning) {
+                          durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Time cross-check mismatch! Check Excel Master inputs.">⚠️ ${session.duration.toFixed(2)}h</span>`;
+                        }
+
                         structuralCellsBundleHTML = `
                             <td class="pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white" rowspan="${totalPostRowsCount}">${session.id}</td>
                             <td class="border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
@@ -530,13 +523,14 @@
                                 <br>${lockBadge}
                             </td>
                             <td class="border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
+                            <td class="border-r border-slate-200 px-2 font-bold text-slate-700 align-middle" rowspan="${totalPostRowsCount}">${session.timeWindow}<br>${durationDisplayBlock}</td>
                         `;
                     }
 
                     rowTr.innerHTML = `
                         ${structuralCellsBundleHTML}
                         <td class="border-r border-slate-200 px-2 font-bold text-slate-700 align-middle">${post.role}</td>
-                        <td class="border-r border-slate-200 px-2 font-mono text-slate-400 align-middle">${post.time}<br><span class="text-slate-500 font-bold">(${post.weight.toFixed(2)}h)</span></td>
+                        <td class="border-r border-slate-200 px-2 font-mono text-slate-400 align-middle">${post.time} <span class="font-bold text-slate-500">(${post.weight.toFixed(2)}h)</span></td>
                         <td class="pr-4 pl-2 align-middle max-w-xs">
                             <div class="dropzone border border-dashed border-slate-300 rounded-lg h-7 bg-white flex items-center justify-center relative transition-all"
                                  data-sid="${session.id}" data-key="${post.key}">
@@ -604,7 +598,6 @@
             if(sessionsData.length > 0) refreshAppPipeline();
         });
 
-        // --- UPDATED REPORT GENERATOR: CHRONOLOGICAL STABLE ORDER GUARANTEE ---
         function downloadReport(reportType) {
             if (sessionsData.length === 0) return alert("Ensure a database has been actively parsed first.");
             let csv = "data:text/csv;charset=utf-8,";
@@ -640,7 +633,6 @@
                         });
                     });
                     
-                    // Fixed: Force individual staff rosters into stable timeline order
                     teacherDuties.sort((a, b) => {
                         const dateComp = getDateSortWeight(a.session.dateString) - getDateSortWeight(b.session.dateString);
                         if (dateComp !== 0) return dateComp;
