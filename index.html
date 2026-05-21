@@ -31,7 +31,6 @@
     </header>
 
     <section class="bg-white p-3 border-b border-slate-200 shadow-xs flex flex-wrap items-center gap-4 shrink-0 z-10 text-xs">
-        
         <div class="flex items-center gap-2">
             <span class="font-bold text-slate-500 uppercase tracking-wider">Step 1:</span>
             <a href="./exam_sch_template.xlsx" download class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 shadow-xs">
@@ -64,7 +63,6 @@
                     <option value="2.00">2.00h</option>
                 </select>
             </div>
-            
             <button onclick="runAutoScheduler()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-1.5 rounded-lg transition-all cursor-pointer shadow-md">⚡ Run Auto-Scheduler</button>
         </div>
 
@@ -132,14 +130,14 @@
                     <table class="w-full text-left border-collapse table-fixed min-w-[950px]">
                         <thead>
                             <tr class="bg-slate-900 text-slate-200 text-[11px] uppercase tracking-wider sticky top-0 z-20 h-10">
-                                <th class="w-16 pl-4 border-b border-slate-800">Session</th>
-                                <th class="w-20 border-b border-slate-800">Date/Blk</th>
-                                <th class="w-12 border-b border-slate-800 text-center">Form</th>
-                                <th class="w-36 border-b border-slate-800">Subject Title</th>
-                                <th class="w-36 border-b border-slate-800">Venue Location</th>
-                                <th class="w-28 border-b border-slate-800">Required Post</th>
-                                <th class="w-28 border-b border-slate-800">Time / Weight</th>
-                                <th class="w-60 pr-4 border-b border-slate-800">Assigned Staff Target Placement</th>
+                                <th class="w-[8%] pl-4 border-b border-slate-800">Session</th>
+                                <th class="w-[9%] border-b border-slate-800">Date/Blk</th>
+                                <th class="w-[5%] border-b border-slate-800 text-center">Form</th>
+                                <th class="w-[18%] border-b border-slate-800 px-2">Subject Title</th>
+                                <th class="w-[18%] border-b border-slate-800 px-2">Venue Location</th>
+                                <th class="w-[14%] border-b border-slate-800 px-2">Required Post</th>
+                                <th class="w-[12%] border-b border-slate-800 px-2">Time / Weight</th>
+                                <th class="w-[16%] pr-4 border-b border-slate-800 px-2">Assigned Staff Target Placement</th>
                             </tr>
                         </thead>
                         <tbody id="table-canvas-body" class="text-xs divide-y divide-slate-200">
@@ -165,7 +163,6 @@
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
 
-        // --- 1. LOCAL BINARY EXCEL PARSER (REPLACES APPS SCRIPT BACKEND) ---
         function processLocalExcelWorkbook(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -184,14 +181,12 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                     
-                    // Core Data Object Extraction Framework Matrices
                     const rawStaff = extractRowsFromSheet(workbook, "Staff_Roster");
                     const rawAvail = extractRowsFromSheet(workbook, "Availability");
                     const rawRules = extractRowsFromSheet(workbook, "Session_Rules");
                     const rawMaster = extractRowsFromSheet(workbook, "Exam_Master");
                     const rawPre = extractRowsFromSheet(workbook, "Pre_Assignments");
 
-                    // Build Local Memory Objects Strategy Pipeline
                     buildStaffRosterMemory(rawStaff);
                     parseAvailabilityConstraints(rawAvail);
                     const rulesMap = buildRulesMemory(rawRules);
@@ -215,7 +210,6 @@
             return XLSX.utils.sheet_to_json(sheet, { defval: "" });
         }
 
-        // --- 2. APPS SCRIPT DATA PORTING PARSERS ENGINE TRANSFORMATIONS ---
         function buildStaffRosterMemory(rows) {
             staffRoster = {};
             rows.forEach(row => {
@@ -330,7 +324,6 @@
                         posts: []
                     };
 
-                    // --- SHIFT SPLITTING LOGIC IN JAVASCRIPT ---
                     const shouldTruncate = rawDuration > 2.0;
                     let shiftADuration = 0;
                     let shiftBDuration = 0;
@@ -414,7 +407,6 @@
             });
         }
 
-        // --- 3. SYSTEM SCHEDULER, SHORTHAND AND COMPLIANCE VALIDATORS ---
         function calculateDurationFromStrings(startStr, endStr) {
             const startParts = startStr.split(":");
             const endParts = endStr.split(":");
@@ -680,6 +672,7 @@
             });
         }
 
+        // --- FIXED GRID CELL WIDTH STABILIZER ---
         function drawGridCanvas() {
             const tbody = document.getElementById("table-canvas-body"); tbody.innerHTML = "";
             if (sessionsData.length === 0) return;
@@ -722,21 +715,22 @@
                           durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Cross-check mismatch! Check Excel Master tab values row alignment.">⚠️ ${session.duration.toFixed(2)}h</span>`;
                         }
 
+                        // FIXED METRIC: Forces exact percent alignments mapping down to match header coordinates perfectly
                         structuralCellsBundleHTML = `
-                            <td class="pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white" rowspan="${totalPostRowsCount}">${session.id}</td>
-                            <td class="border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
-                            <td class="border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700" rowspan="${totalPostRowsCount}">${session.form}</td>
-                            <td class="border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.subject}<br>${lockBadge}</td>
-                            <td class="border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
-                            <td class="border-r border-slate-200 px-2 font-bold text-slate-700 align-middle" rowspan="${totalPostRowsCount}">${session.timeWindow}<br>${durationDisplayBlock}</td>
+                            <td class="w-[8%] pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white truncate" rowspan="${totalPostRowsCount}">${session.id}</td>
+                            <td class="w-[9%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
+                            <td class="w-[5%] border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700 truncate" rowspan="${totalPostRowsCount}">${session.form}</td>
+                            <td class="w-[18%] border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.subject}<br>${lockBadge}</td>
+                            <td class="w-[18%] border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
+                            <td class="w-[14%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate" rowspan="${totalPostRowsCount}">${session.timeWindow}<br>${durationDisplayBlock}</td>
                         `;
                     }
 
                     rowTr.innerHTML = `
                         ${structuralCellsBundleHTML}
-                        <td class="border-r border-slate-200 px-2 font-bold text-slate-700 align-middle">${post.role}</td>
-                        <td class="border-r border-slate-200 px-2 font-mono text-slate-400 align-middle">${post.time} <span class="font-bold text-slate-500">(${post.weight.toFixed(2)}h)</span></td>
-                        <td class="pr-4 pl-2 align-middle">
+                        <td class="w-[14%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate">${post.role}</td>
+                        <td class="w-[12%] border-r border-slate-200 px-2 font-mono text-slate-400 align-middle truncate">${post.time}<br><span class="text-slate-500 font-bold">(${post.weight.toFixed(2)}h)</span></td>
+                        <td class="w-[16%] pr-4 pl-2 align-middle max-w-xs">
                             <div class="dropzone border border-dashed border-slate-300 rounded-lg h-7 bg-white flex items-center justify-center relative transition-all w-full" data-sid="${session.id}" data-key="${post.key}">
                                  ${post.staff ? `
                                     <div class="absolute inset-0 bg-blue-50 text-blue-900 px-2 flex items-center justify-between font-bold border border-blue-200 rounded-lg text-[11px] overflow-hidden ${post.pinned ? 'pinned-card' : ''}">
@@ -788,7 +782,6 @@
 
         document.getElementById("variance-tolerance").addEventListener("change", () => { if(sessionsData.length > 0) refreshAppPipeline(); });
 
-        // --- 4. EXPORT AND MASTER TIMELINE REPORTING ENGINES ---
         function downloadMasterGridReport() {
             if (sessionsData.length === 0) return alert("No database loaded.");
             const dayTrackerSet = new Set(); sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
