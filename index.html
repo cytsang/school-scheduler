@@ -3,219 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Invigilation Workspace Dashboard</title>
+    <title>Interactive Exam Invigilation Scheduler Workspace</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        .drag-over { border: 2px dashed #2563eb !important; background-color: #f0f7ff !important; }
+        .drag-over { border: 2px dashed #2563eb !important; background-color: #eff6ff !important; }
+        .pinned-card { background: #f8fafc !important; border-color: #cbd5e1 !important; cursor: not-allowed !important; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Top Banner App Layout -->
-    <header class="bg-slate-900 text-white px-6 py-4 shadow-md flex justify-between items-center">
+    <header class="bg-slate-900 text-white px-6 py-4 shadow-lg flex justify-between items-center shrink-0">
         <div>
-            <h1 class="text-xl font-bold tracking-tight">Exam Invigilation Scheduler Tool</h1>
-            <p class="text-xs text-slate-400">Live Workspace Integration Architecture Panel</p>
+            <h1 class="text-lg font-bold tracking-tight">Exam Invigilation Management Dashboard</h1>
+            <p class="text-xs text-slate-400">Connected System Mode Integration Platform</p>
         </div>
-        <div class="flex gap-3">
-            <button onclick="downloadCSV('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors">Export by Form</button>
-            <button onclick="downloadCSV('teacher')" class="bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors">Export by Teacher</button>
+        <div class="flex gap-2">
+            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">📊 Export Portfolio by Form</button>
+            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">👤 Export Portfolio by Teacher</button>
         </div>
     </header>
 
-    <!-- Operational Controls Configuration Panel Row -->
-    <section class="bg-white p-4 border-b border-slate-200 shadow-xs flex items-center gap-4">
-        <input type="text" id="api-url-input" class="flex-1 bg-slate-50 border border-slate-300 text-sm px-3 py-2 rounded-lg font-mono text-slate-600" placeholder="Paste your Google Apps Script Web App URL here..." />
-        <button onclick="connectToDatabase()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-lg cursor-pointer transition-all">Connect Sheet</button>
+    <section class="bg-white p-3 border-b border-slate-200 shadow-xs flex items-center gap-3 shrink-0">
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">API Endpoint:</label>
+        <input type="text" id="script-url" class="flex-1 bg-slate-50 border border-slate-300 text-xs px-3 py-2 rounded-lg font-mono text-slate-600 focus:outline-blue-500" placeholder="Paste your published Google Apps Script web application connection macro URL link string here..." />
+        <button onclick="fetchSheetSchema()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all cursor-pointer">Sync Database Rows</button>
     </section>
 
-    <!-- Primary Layout Matrix Splits -->
     <div class="flex flex-1 overflow-hidden">
-        <!-- Roster Column -->
-        <aside class="w-80 bg-white border-r border-slate-200 p-4 overflow-y-auto flex flex-col justify-between">
-            <div>
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Live Roster Balances</h2>
-                <div id="teacher-roster" class="space-y-2">
-                    <p class="text-xs text-slate-400 italic">Connect your Google Sheet deployment link above to extract your live faculty list profiles...</p>
+        
+        <aside class="w-80 bg-white border-r border-slate-200 p-4 flex flex-col justify-between shadow-sm shrink-0">
+            <div class="flex flex-col flex-1 overflow-hidden">
+                <div class="mb-3">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Faculty Roster & Burden Metrics</h2>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Drag names out to fill vacancies. Limits: Max 1 duty/day. Fairness target spread limit: 0.5h max variance window.</p>
+                </div>
+                
+                <div id="roster-box" class="space-y-2 overflow-y-auto pr-1 flex-1">
+                    <p class="text-xs text-slate-400 italic mt-4 text-center">Sync data schema rows to fetch rosters...</p>
                 </div>
             </div>
-            <div class="mt-4 pt-4 border-t border-slate-100 text-xs font-semibold text-slate-500">
-                Max Hour Spread Variance Target: <span id="variance-readout" class="font-bold text-slate-800">0.00h</span>
+
+            <div class="mt-4 pt-3 border-t border-slate-200 bg-slate-50 p-2.5 rounded-lg">
+                <div class="flex justify-between text-[11px] font-bold text-slate-500 uppercase">
+                    <span>Variance Window:</span>
+                    <span id="variance-readout" class="text-slate-800">0.00h</span>
+                </div>
+                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                    <div id="variance-progress-bar" class="bg-slate-400 h-1.5 w-0 transition-all duration-300"></div>
+                </div>
             </div>
         </aside>
 
-        <!-- Dynamic Grid Workspace Area -->
         <main class="flex-1 p-6 overflow-y-auto">
-            <div id="sessions-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <!-- Javascript maps operational cards here -->
+            <div id="grid-canvas" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div class="xl:col-span-2 flex flex-col items-center justify-center p-20 border-2 border-dashed border-slate-200 rounded-2xl bg-white text-slate-400">
+                    <span class="text-4xl mb-2">📊</span>
+                    <p class="text-sm font-medium">Canvas Workspace Blank</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Input your target secure Google Sheets web endpoint string above and click sync to begin.</p>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- Active Popup Error Notification Frame Toast -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
-        <span class="text-red-400 font-bold">⚠️</span> <span id="toast-message">Constraint flagged.</span>
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
+        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Constraint condition block alert notification text strings.</span>
     </div>
 
     <script>
-        let teachers = {};
-        let examSessions = [];
+        let staffRoster = {};
+        let sessionsData = [];
 
-        async function connectToDatabase() {
-            const url = document.getElementById("api-url-input").value.trim();
-            if(!url) return alert("Please specify a valid connection deployment link url script token structure first.");
+        async function fetchSheetSchema() {
+            const endpoint = document.getElementById("script-url").value.trim();
+            if(!endpoint) return alert("Provide your deployment script link macro reference target token string first.");
             
-            document.getElementById("sessions-grid").innerHTML = `<p class='text-sm text-slate-400 italic animate-pulse'>Querying Sheet database schema sheets rows variables...</p>`;
+            document.getElementById("grid-canvas").innerHTML = `
+                <div class="xl:col-span-2 flex flex-col items-center justify-center p-20 bg-white border border-slate-200 rounded-xl">
+                    <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                    <p class="text-xs text-slate-400 font-mono tracking-widest uppercase">Querying Active Spreadsheet Workbook Schemas...</p>
+                </div>`;
             
             try {
-                const response = await fetch(url);
-                const data = await response.json();
+                const res = await fetch(endpoint);
+                const payload = await res.json();
                 
-                if(data.error) throw new Error(data.error);
+                if (payload.error) throw new Error(payload.error);
                 
-                teachers = data.teachers;
-                examSessions = data.examSessions;
-                updatePipeline();
-            } catch(err) {
-                alert("Database initialization crash: " + err.message + "\nCheck deployment parameters authorization permissions settings.");
+                staffRoster = payload.teachers;
+                sessionsData = payload.examSessions;
+                
+                refreshAppPipeline();
+            } catch (err) {
+                alert("Database Synchronization Fault:\n" + err.message + "\n\nVerify sheet tab nomenclature structures match requirements.");
+                document.getElementById("grid-canvas").innerHTML = `<div class='xl:col-span-2 text-center text-xs text-red-500 p-10 bg-white border border-red-200 rounded-xl font-mono'>Failed to sync: ${err.message}</div>`;
             }
         }
 
-        function calculateHours() {
-            Object.keys(teachers).forEach(name => {
-                teachers[name].totalHours = teachers[name].extraHours;
-                teachers[name].dailyDuties = {};
+        function computeOperationalHours() {
+            // Reset active operational accumulation profiles arrays back to original baseline limits
+            Object.keys(staffRoster).forEach(name => {
+                staffRoster[name].totalHours = staffRoster[name].extraHours; // Includes structural +1.0h baseline offset for discipline members
+                staffRoster[name].dailyDuties = {};
             });
 
-            examSessions.forEach(session => {
+            // Map and calculate running task parameters
+            sessionsData.forEach(session => {
                 session.posts.forEach(post => {
-                    if (post.staff && teachers[post.staff]) {
-                        teachers[post.staff].totalHours += post.weight;
-                        if (!teachers[post.staff].dailyDuties[session.dateString]) teachers[post.staff].dailyDuties[session.dateString] = 0;
-                        teachers[post.staff].dailyDuties[session.dateString]++;
+                    if (post.staff && staffRoster[post.staff]) {
+                        staffRoster[post.staff].totalHours += post.weight;
+                        if (!staffRoster[post.staff].dailyDuties[session.dateString]) {
+                            staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                        }
+                        staffRoster[post.staff].dailyDuties[session.dateString]++;
                     }
                 });
             });
         }
 
-        function renderRoster() {
-            const container = document.getElementById("teacher-roster");
+        function drawRosterSidebar() {
+            const container = document.getElementById("roster-box");
             container.innerHTML = "";
 
-            const hours = Object.values(teachers).map(t => t.totalHours);
-            if(hours.length > 0) {
-                const variance = Math.max(...hours) - Math.min(...hours);
-                document.getElementById("variance-readout").innerText = `${variance.toFixed(2)}h` + (variance > 0.5 ? " (Exceeds 0.5h target!)" : " (Fair ✓)");
+            const balanceHours = Object.values(staffRoster).map(t => t.totalHours);
+            if (balanceHours.length > 0) {
+                const max = Math.max(...balanceHours);
+                const min = Math.min(...balanceHours);
+                const variance = max - min;
+                
+                const readout = document.getElementById("variance-readout");
+                const progress = document.getElementById("variance-progress-bar");
+                
+                readout.innerText = `${variance.toFixed(2)}h`;
+                if (variance > 0.5) {
+                    readout.className = "text-rose-600 font-black";
+                    progress.className = "bg-rose-500 h-1.5 transition-all duration-300";
+                    progress.style.width = "100%";
+                } else {
+                    readout.className = "text-emerald-600 font-black";
+                    progress.className = "bg-emerald-500 h-1.5 transition-all duration-300";
+                    progress.style.width = `${(variance / 0.5) * 100}%`;
+                }
             }
 
-            Object.entries(teachers).forEach(([name, data]) => {
-                const card = document.createElement("div");
-                card.className = "bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-xs cursor-grab flex justify-between items-center hover:border-blue-400 transition-all";
-                card.draggable = true;
-                card.innerHTML = `<div><b class='text-slate-700'>${name}</b></div> <span class='font-mono font-bold bg-slate-200/60 px-1.5 py-0.5 rounded'>${data.totalHours.toFixed(2)}h</span>`;
+            Object.entries(staffRoster).forEach(([name, data]) => {
+                const block = document.createElement("div");
+                block.className = "bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs flex justify-between items-center hover:border-blue-400 transition-all cursor-grab active:cursor-grabbing group";
+                block.draggable = true;
                 
-                card.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", name));
-                container.appendChild(card);
+                let groupBadges = "";
+                if (data.isDiscipline) groupBadges += `<span class="bg-purple-100 text-purple-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">DISC</span>`;
+                if (data.isChinese) groupBadges += `<span class="bg-orange-100 text-orange-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">CHI</span>`;
+                if (data.isEnglish) groupBadges += `<span class="bg-blue-100 text-blue-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">ENG</span>`;
+                if (data.isMaths) groupBadges += `<span class="bg-teal-100 text-teal-700 text-[9px] font-extrabold px-1.5 py-0.2 rounded">MATH</span>`;
+
+                block.innerHTML = `
+                    <div class="flex flex-col gap-0.5">
+                        <span class="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">${name}</span>
+                        <div class="flex flex-wrap gap-1 mt-0.5">${groupBadges}</div>
+                    </div>
+                    <span class="font-mono font-bold bg-slate-200/70 text-slate-800 px-2 py-0.5 rounded-md text-[11px]">${data.totalHours.toFixed(2)}h</span>
+                `;
+                
+                block.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", name));
+                container.appendChild(block);
             });
         }
 
-        function renderGrid() {
-            const grid = document.getElementById("sessions-grid");
-            grid.innerHTML = "";
+        function drawGridCanvas() {
+            const canvas = document.getElementById("grid-canvas");
+            canvas.innerHTML = "";
 
-            examSessions.forEach(session => {
-                const card = document.createElement("div");
-                card.className = "bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col justify-between";
-                card.innerHTML = `
-                    <div class='mb-2'>
-                        <span class='text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded'>${session.form} | ${session.venue}</span>
-                        <h3 class='text-md font-bold text-slate-900 mt-1'>${session.subject}</h3>
-                        <p class='text-[11px] text-slate-400'>📅 ${session.dateString} | 🕒 ${session.timeWindow} (${session.duration}h)</p>
+            if (sessionsData.length === 0) {
+                canvas.innerHTML = "<p class='text-slate-400 italic text-xs text-center p-10 xl:col-span-2'>No active exams loaded.</p>";
+                return;
+            }
+
+            sessionsData.forEach(session => {
+                const panel = document.createElement("div");
+                panel.className = "bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between transition-all hover:shadow-sm";
+                
+                let constraintHeaderFlag = "";
+                if (session.constraintRule === "ONLY_CHINESE_TEACHERS") constraintHeaderFlag = `<span class="bg-orange-50 text-orange-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-orange-200">🔒 CHI Filter Lock</span>`;
+                if (session.constraintRule === "ONLY_ENGLISH_TEACHERS") constraintHeaderFlag = `<span class="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-200">🔒 ENG Filter Lock</span>`;
+                if (session.constraintRule === "ONLY_MATHS_TEACHERS")   constraintHeaderFlag = `<span class="bg-teal-50 text-teal-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-teal-200">🔒 MATH Filter Lock</span>`;
+
+                panel.innerHTML = `
+                    <div class="mb-3">
+                        <div class="flex justify-between items-center">
+                            <span class="bg-slate-100 text-slate-600 font-extrabold text-[10px] px-2 py-0.5 rounded">Form ${session.form} • Venue ${session.venue}</span>
+                            ${constraintHeaderFlag}
+                        </div>
+                        <h3 class="text-md font-bold text-slate-900 mt-1.5 tracking-tight">${session.subject}</h3>
+                        <p class="text-[11px] text-slate-400 font-medium mt-0.5">📅 ${session.dateString} &nbsp;•&nbsp; 🕒 ${session.timeWindow} (${session.duration}h duration)</p>
                     </div>
-                    <div class='space-y-1.5 pt-2 border-t border-slate-100' id='zone-${session.id}'></div>
+                    <div class="space-y-1.5 pt-2 border-t border-slate-100" id="rows-${session.id}"></div>
                 `;
-                grid.appendChild(card);
+                canvas.appendChild(panel);
 
-                const container = document.getElementById(`zone-${session.id}`);
+                const rowsTarget = document.getElementById(`rows-${session.id}`);
                 session.posts.forEach(post => {
                     const row = document.createElement("div");
-                    row.className = "flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs";
+                    row.className = "flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 transition-all text-xs";
+                    
                     row.innerHTML = `
-                        <div><div><b>${post.role}</b></div><span class='text-[10px] text-slate-400'>${post.time} (${post.weight}h)</span></div>
-                        <div class='dropzone w-40 h-8 border border-dashed border-slate-300 rounded bg-white flex items-center justify-center relative overflow-hidden' data-sid='${session.id}' data-key='${post.key}'>
-                            ${post.staff ? `<div class='absolute inset-0 bg-blue-50 text-blue-800 px-2 flex items-center justify-between font-semibold'><span>👤 ${post.staff}</span><button onclick="clearSlot('${session.id}','${post.key}')" class='text-slate-400 hover:text-red-500 font-bold ml-1 cursor-pointer'>×</button></div>` : `<span class='text-[10px] text-slate-400 italic'>Empty</span>`}
+                        <div class="flex flex-col">
+                            <span class="font-bold text-slate-700">${post.role}</span>
+                            <span class="text-[10px] text-slate-400 font-medium">${post.time} &nbsp;•&nbsp; (${post.weight.toFixed(2)}h weight)</span>
+                        </div>
+                        <div class="dropzone w-44 h-8 border border-dashed border-slate-300 rounded-lg bg-white flex items-center justify-center relative transition-all"
+                             data-sid="${session.id}" data-key="${post.key}">
+                             ${post.staff ? `
+                                <div class="absolute inset-0 bg-blue-50 text-blue-800 rounded-lg px-2 flex items-center justify-between font-semibold border border-blue-200 text-[11px] ${post.pinned ? 'pinned-card' : ''}">
+                                    <span class="truncate">👤 ${post.staff}</span>
+                                    ${post.pinned ? `<span class="text-[9px] bg-slate-200 text-slate-500 font-bold px-1 rounded">PIN</span>` : `<button onclick="clearVacancy('${session.id}','${post.key}')" class="text-slate-400 hover:text-red-500 font-bold text-sm ml-1 cursor-pointer">×</button>`}
+                                </div>
+                             ` : `<span class="text-[10px] text-slate-400 italic font-medium selection:bg-transparent">Vacant Slot</span>`}
                         </div>
                     `;
-                    container.appendChild(row);
+                    rowsTarget.appendChild(row);
 
-                    const dz = row.querySelector(".dropzone");
+                    const zone = row.querySelector(".dropzone");
                     if (!post.staff) {
-                        dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("drag-over"); });
-                        dz.addEventListener("dragleave", () => dz.classList.remove("drag-over"));
-                        dz.addEventListener("drop", (e) => {
+                        zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("drag-over"); });
+                        zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+                        zone.addEventListener("drop", (e) => {
                             e.preventDefault();
-                            dz.classList.remove("drag-over");
-                            executeAssignment(e.dataTransfer.getData("text/plain"), session.id, post.key);
+                            zone.classList.remove("drag-over");
+                            commitDropAssignment(e.dataTransfer.getData("text/plain"), session.id, post.key);
                         });
                     }
                 });
             });
         }
 
-        function executeAssignment(name, sid, key) {
-            const session = examSessions.find(s => s.id === sid);
-            const post = session.posts.find(p => p.key === key);
-            const profile = teachers[name];
+        function commitDropAssignment(teacherName, sessionId, postKey) {
+            const s = sessionsData.find(x => x.id === sessionId);
+            const p = s.posts.find(y => y.key === postKey);
+            const t = staffRoster[teacherName];
 
-            if (profile.unavailableBlocks.includes(session.dayBlock)) return triggerToast(`Conflict: ${name} is unavailable during block row window [${session.dayBlock}]!`);
-            if (profile.dailyDuties[session.dateString] >= 1) return triggerToast(`Conflict: ${name} already holds an active duty assignment profile on date ${session.dateString}.`);
+            // 1. Availability Rule Enforcement Constraint
+            if (t.unavailableBlocks.includes(s.dayBlock)) {
+                return fireToast(`Conflict: ${teacherName} is explicitly unavailable during time-window block row: [${s.dayBlock}]`);
+            }
 
-            post.staff = name;
-            updatePipeline();
+            // 2. Day Assignment Cap Rule (Max 1 duty per unique date string assignment)
+            if (t.dailyDuties[s.dateString] && t.dailyDuties[s.dateString] >= 1) {
+                return fireToast(`Conflict: Allocation Max Limit! ${teacherName} already has an active allocation assigned on date: ${s.dateString}`);
+            }
+
+            // 3. Relational Operational Session Rules Verification Filter Constraints
+            if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return fireToast(`Rule Violation: Target exam session strictly requires a Chinese Teacher.`);
+            if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return fireToast(`Rule Violation: Target exam session strictly requires an English Teacher.`);
+            if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths)     return fireToast(`Rule Violation: Target exam session strictly requires a Mathematics Teacher.`);
+
+            p.staff = teacherName;
+            refreshAppPipeline();
         }
 
-        function clearSlot(sid, key) {
-            examSessions.find(s => s.id === sid).posts.find(p => p.key === key).staff = null;
-            updatePipeline();
+        function clearVacancy(sessionId, postKey) {
+            sessionsData.find(x => x.id === sessionId).posts.find(y => y.key === postKey).staff = null;
+            refreshAppPipeline();
         }
 
-        function triggerToast(msg) {
-            const t = document.getElementById("toast");
-            document.getElementById("toast-message").innerText = msg;
-            t.className = t.className.replace("translate-y-20 opacity-0", "translate-y-0 opacity-100");
-            setTimeout(() => { t.className = t.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0"); }, 3500);
+        function fireToast(msg) {
+            const el = document.getElementById("toast");
+            document.getElementById("toast-txt").innerText = msg;
+            el.className = el.className.replace("translate-y-20 opacity-0", "translate-y-0 opacity-100");
+            setTimeout(() => { el.className = el.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0"); }, 4000);
         }
 
-        function updatePipeline() { calculateHours(); renderRoster(); renderGrid(); }
+        function refreshAppPipeline() {
+            computeOperationalHours();
+            drawRosterSidebar();
+            drawGridCanvas();
+        }
 
-        function downloadCSV(type) {
-            let csvContent = "data:text/csv;charset=utf-8,";
-            if (type === 'form') {
-                csvContent += "Form,Date,Time,Subject,Venue,Post,Assigned Staff\n";
-                examSessions.forEach(s => {
+        function downloadReport(reportType) {
+            if (sessionsData.length === 0) return alert("Ensure a database has been actively parsed to populate reports maps structures.");
+            
+            let csv = "data:text/csv;charset=utf-8,";
+            
+            if (reportType === 'form') {
+                csv += "Form,Date,Time Window,Subject,Venue,Required Post Character Role,Assigned Staff Name\n";
+                // Sort array chronologically by Form then Date sequence structures
+                const sorted = [...sessionsData].sort((a,b) => String(a.form).localeCompare(String(b.form)) || String(a.dateString).localeCompare(String(b.dateString)));
+                sorted.forEach(s => {
                     s.posts.forEach(p => {
-                        csvContent += `"${s.form}","${s.dateString}","${s.timeWindow}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`;
+                        csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`;
                     });
                 });
             } else {
-                csvContent += "Teacher Name,Date,Venue,Subject,Assigned Post,Time Window,Weight Hours\n";
-                Object.keys(teachers).forEach(tName => {
-                    examSessions.forEach(s => {
+                csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
+                Object.keys(staffRoster).sort().forEach(tName => {
+                    sessionsData.forEach(s => {
                         s.posts.forEach(p => {
-                            if(p.staff === tName) {
-                                csvContent += `"${tName}","${s.dateString}","${s.venue}","${s.subject}","${p.role}","${s.timeWindow}","${p.weight}"\n`;
+                            if (p.staff === tName) {
+                                csv += `"${tName}","${s.dateString}","${s.venue}","${s.subject}","${p.role}","${p.time}","${p.weight.toFixed(2)}"\n`;
                             }
                         });
                     });
                 });
             }
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `invigilation_duty_report_by_${type}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+
+            const downloadAnchor = document.createElement("a");
+            downloadAnchor.setAttribute("href", encodeURI(csv));
+            downloadAnchor.setAttribute("download", `school_exam_timetable_report_sorted_by_${reportType}.csv`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            document.body.removeChild(downloadAnchor);
         }
     </script>
 </body>
