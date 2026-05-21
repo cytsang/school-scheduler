@@ -121,7 +121,7 @@
                 <div class="flex-1 overflow-auto">
                     <table class="w-full text-left border-collapse table-fixed min-w-[800px]">
                         <thead>
-                            <tr class="bg-slate-900 text-slate-220 text-[11px] uppercase tracking-wider sticky top-0 z-20 h-10">
+                            <tr class="bg-slate-900 text-slate-200 text-[11px] uppercase tracking-wider sticky top-0 z-20 h-10">
                                 <th class="w-20 pl-4 border-b border-slate-800">Session</th>
                                 <th class="w-24 border-b border-slate-800">Date & Block</th>
                                 <th class="w-16 border-b border-slate-800">Form</th>
@@ -153,7 +153,6 @@
         let staffRoster = {};
         let sessionsData = [];
         
-        // Active Filter Memory State Profiles
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
 
@@ -177,21 +176,50 @@
                 staffRoster = payload.teachers;
                 sessionsData = payload.examSessions;
                 
-                // Populate the new custom selection dropdown lists dynamically
                 populateFilterDropdownOptions();
-                
                 refreshAppPipeline();
             } catch (err) {
                 alert("Database Sync Failure:\n" + err.message);
             }
         }
 
-        // NEW FILTER METRICS PACK ENGINE
+        // --- HELPER METRIC: CHRONOLOGICAL TIME CONVERSION SORT MATRIX ---
+        // Converts "15/6" -> Value weight factor to ensure correct temporal ordering
+        function getDateSortWeight(dateString) {
+            if (!dateString) return 0;
+            const parts = dateString.split("/");
+            const day = parseInt(parts[0], 10) || 0;
+            const month = parseInt(parts[1], 10) || 0;
+            return (month * 100) + day; // e.g., "8/6" -> 608, "15/6" -> 615
+        }
+
+        function getTimeSortWeight(timeWindowString) {
+            if (!timeWindowString) return 0;
+            const baseStart = timeWindowString.split("-")[0].trim(); // Extract e.g. "08:15"
+            const parts = baseStart.split(":");
+            const hr = parseInt(parts[0], 10) || 0;
+            const min = parseInt(parts[1], 10) || 0;
+            return (hr * 60) + min;
+        }
+
+        function sortSessionsChronologically(sessionsArray) {
+            return sessionsArray.sort((a, b) => {
+                const dateWeightA = getDateSortWeight(a.dateString);
+                const dateWeightB = getDateSortWeight(b.dateString);
+                if (dateWeightA !== dateWeightB) return dateWeightA - dateWeightB;
+                
+                const timeWeightA = getTimeSortWeight(a.timeWindow);
+                const timeWeightB = getTimeSortWeight(b.timeWindow);
+                if (timeWeightA !== timeWeightB) return timeWeightA - timeWeightB;
+                
+                return a.id.localeCompare(b.id, undefined, {numeric: true});
+            });
+        }
+
         function populateFilterDropdownOptions() {
             const daySelect = document.getElementById("filter-day");
             const formSelect = document.getElementById("filter-form");
             
-            // Retain original base reset row option elements
             daySelect.innerHTML = `<option value="ALL">-- All Days --</option>`;
             formSelect.innerHTML = `<option value="ALL">-- All Forms --</option>`;
             
@@ -203,17 +231,17 @@
                 if (s.form) uniqueFormsSet.add(s.form);
             });
             
-            // Append ordered day blocks option components
-            [...uniqueDaysSet].sort().forEach(day => {
+            // FIXED CHRONOLOGICAL DROP-DOWN SORT: Order days strictly by timeline weight mapping
+            const sortedDays = [...uniqueDaysSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
+            sortedDays.forEach(day => {
                 daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
             });
             
-            // Append ordered form options components
-            [...uniqueFormsSet].sort((a,b) => String(a).localeCompare(String(b), undefined, {numeric: true})).forEach(form => {
+            const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
+            sortedForms.forEach(form => {
                 formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
             });
             
-            // Ensure visual state matches background variable assignments
             daySelect.value = activeDayFilter;
             formSelect.value = activeFormFilter;
         }
@@ -244,7 +272,7 @@
         }
 
         function exportWorkspaceJSON() {
-            if (sessionsData.length === 0) return alert("Canvas structure state data empty.");
+            if (sessionsData.length === 0) return alert("Canvas structure data empty.");
             const backupPackage = { staffRoster: staffRoster, sessionsData: sessionsData, savedAt: new Date().toISOString() };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPackage));
             const dlAnchor = document.createElement('a');
@@ -262,7 +290,7 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid structure format framework blueprints.");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid structure framework data blue-prints.");
                     staffRoster = importedData.staffRoster;
                     sessionsData = importedData.sessionsData;
                     
@@ -276,7 +304,7 @@
         }
 
         function runAutoScheduler() {
-            if (sessionsData.length === 0) return alert("Please fetch sheet parameters before execution routines initialization!");
+            if (sessionsData.length === 0) return alert("Please fetch sheet parameters before auto-allocation execution routines!");
 
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
             const MAX_ATTEMPTS = 500;
@@ -290,11 +318,12 @@
                     });
                 });
 
+                // Maintain chronological logic baseline paths, adding shuffling adjustments selectively on subsequent iterations
                 let chronologicalSessions = [...sessionsData];
                 if (attempt > 1) {
                     chronologicalSessions.sort(() => Math.random() - 0.5);
                 } else {
-                    chronologicalSessions.sort((a, b) => a.id.localeCompare(b.id));
+                    chronologicalSessions = sortSessionsChronologically(chronologicalSessions);
                 }
 
                 let brokenSlotDetected = false;
@@ -428,14 +457,12 @@
             });
         }
 
-        // --- UPDATED TABULAR CANVAS RENDERING WITH DYNAMIC FILTER CROSS-MATCHING ---
         function drawGridCanvas() {
             const tbody = document.getElementById("table-canvas-body");
             tbody.innerHTML = "";
 
             if (sessionsData.length === 0) return;
 
-            // 1. Apply user selected filter evaluations to determine visible streams subset
             const filteredSessions = sessionsData.filter(session => {
                 if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
                 if (activeFormFilter !== "ALL" && session.form !== activeFormFilter) return false;
@@ -447,8 +474,8 @@
                 return;
             }
 
-            // Sort filtered output display layouts by logical session grouping codes
-            const displayedSessions = [...filteredSessions].sort((a,b) => a.id.localeCompare(b.id));
+            // FIXED CHRONOLOGICAL CANVAS MATRIX SORTING OPERATION
+            const displayedSessions = sortSessionsChronologically([...filteredSessions]);
 
             displayedSessions.forEach((session) => {
                 const totalPostRowsCount = session.posts.length;
@@ -461,7 +488,6 @@
                         rowTr.classList.add("bg-blue-50/20");
                     }
 
-                    // Structural cell rowspans to group session metrics cleanly without repetitions
                     let structuralCellsBundleHTML = "";
                     if (pIdx === 0) {
                         let lockBadge = "";
@@ -470,14 +496,14 @@
                         if (session.constraintRule === "ONLY_MATHS_TEACHERS")   lockBadge = `<div class="text-[8px] text-teal-600 font-bold bg-teal-50 border border-teal-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">MATH Required</div>`;
 
                         structuralCellsBundleHTML = `
-                            <td rowspan="${totalPostRowsCount}" class="pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white">${session.id}</td>
-                            <td rowspan="${totalPostRowsCount}" class="border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight">${session.dayBlock.replace(" (", "<br>(")}</td>
-                            <td rowspan="${totalPostRowsCount}" class="border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700">${session.form}</td>
-                            <td rowspan="${totalPostRowsCount}" class="border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight">
+                            <td class="pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white" rowspan="${totalPostRowsCount}">${session.id}</td>
+                            <td class="border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight" rowspan="${totalPostRowsCount}">${session.dayBlock.replace(" (", "<br>(")}</td>
+                            <td class="border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700" rowspan="${totalPostRowsCount}">${session.form}</td>
+                            <td class="border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">
                                 ${session.subject}
                                 <br>${lockBadge}
                             </td>
-                            <td rowspan="${totalPostRowsCount}" class="border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight">${session.venue}</td>
+                            <td class="border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
                         `;
                     }
 
@@ -552,13 +578,25 @@
             if(sessionsData.length > 0) refreshAppPipeline();
         });
 
+        // --- FIXED CHRONOLOGICAL EXPORT SYSTEM GENERATION LOGIC ---
         function downloadReport(reportType) {
             if (sessionsData.length === 0) return alert("Ensure a database has been actively parsed first.");
             let csv = "data:text/csv;charset=utf-8,";
             
             if (reportType === 'form') {
                 csv += "Form,Date,Time Window,Subject,Venue,Required Post Character Role,Assigned Staff Name\n";
-                const sorted = [...sessionsData].sort((a,b) => String(a.form).localeCompare(String(b.form)) || String(a.dateString).localeCompare(String(b.dateString)));
+                
+                // Sort chronologically by Form, then explicitly by calendar date weight structure
+                const sorted = [...sessionsData].sort((a, b) => {
+                    const formComp = String(a.form).localeCompare(String(b.form), undefined, {numeric: true});
+                    if (formComp !== 0) return formComp;
+                    
+                    const dateComp = getDateSortWeight(a.dateString) - getDateSortWeight(b.dateString);
+                    if (dateComp !== 0) return dateComp;
+                    
+                    return getTimeSortWeight(a.timeWindow) - getTimeSortWeight(b.timeWindow);
+                });
+
                 sorted.forEach(s => {
                     s.posts.forEach(p => {
                         csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`;
@@ -566,13 +604,27 @@
                 });
             } else {
                 csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
+                
                 Object.keys(staffRoster).sort().forEach(tName => {
+                    // Gather all duties held by this specific teacher
+                    const teacherDuties = [];
                     sessionsData.forEach(s => {
                         s.posts.forEach(p => {
                             if (p.staff === tName) {
-                                csv += `"${tName}","${s.dateString}","${s.venue}","${s.subject}","${p.role}","${p.time}","${p.weight.toFixed(2)}"\n`;
+                                teacherDuties.push({ session: s, post: p });
                             }
                         });
+                    });
+                    
+                    // Sort this individual teacher's row portfolio strictly in calendar order
+                    teacherDuties.sort((a, b) => {
+                        const dateComp = getDateSortWeight(a.session.dateString) - getDateSortWeight(b.session.dateString);
+                        if (dateComp !== 0) return dateComp;
+                        return getTimeSortWeight(a.session.timeWindow) - getTimeSortWeight(b.session.timeWindow);
+                    });
+
+                    teacherDuties.forEach(item => {
+                        csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
                     });
                 });
             }
