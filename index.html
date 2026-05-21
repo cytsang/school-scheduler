@@ -24,8 +24,9 @@
             <p class="text-[11px] text-slate-400">High-Density Tabular Management & Allocation Matrix Workspace</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
-            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
+            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
+            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
+            <button onclick="downloadMasterGridReport()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📅 Export Master Grid Matrix</button>
         </div>
     </header>
 
@@ -602,6 +603,69 @@
             if(sessionsData.length > 0) refreshAppPipeline();
         });
 
+        // --- NEW EXPORT ENGINE FUNCTION: CHRONOLOGICAL MASTER TIMELINE GRID MATRIX ---
+        function downloadMasterGridReport() {
+            if (sessionsData.length === 0) return alert("Ensure a database workbook has been parsed before matrix construction.");
+            
+            // 1. Establish an ordered chronological horizontal baseline array of calendar dates
+            const dayTrackerSet = new Set();
+            sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
+            const chronologicalTimelineColumns = [...dayTrackerSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
+
+            // 2. Draft the master CSV header configuration row string values
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + "\n";
+
+            // 3. Loop through sorted teachers list to build structural table records
+            const sortedStaffNamesList = Object.keys(staffRoster).sort();
+            
+            sortedStaffNamesList.forEach((teacherName, index) => {
+                const tData = staffRoster[teacherName];
+                const cleanRowIndex = index + 1;
+                
+                // Map out columns vertically
+                const columnsMapData = {};
+                chronologicalTimelineColumns.forEach(d => { columnsMapData[d] = []; });
+
+                // Scan active allocations matching this specific teacher profile
+                sessionsData.forEach(session => {
+                    session.posts.forEach(post => {
+                        if (post.staff === teacherName) {
+                            // Enforce custom formatting blueprint rules string conversion: (duration)S(form)
+                            let currentFormStringCode = session.form;
+                            // S code maps to combined senior grades 4 and 5
+                            if (currentFormStringCode === "4" || currentFormStringCode === "5" || currentFormStringCode === "S") {
+                                currentFormStringCode = "S";
+                            }
+                            const compactTokenStringCode = `${post.weight}S${currentFormStringCode}`;
+                            
+                            if (columnsMapData[session.dateString]) {
+                                columnsMapData[session.dateString].push(compactTokenStringCode);
+                            }
+                        }
+                    });
+                });
+
+                // Assemble cells array, combining items on the same date with space boundaries
+                const activeLineCellsBundleCSV = chronologicalTimelineColumns.map(date => {
+                    const dynamicDayDutiesArrayList = columnsMapData[date] || [];
+                    return dynamicDayDutiesArrayList.length > 0 ? `"${dynamicDayDutiesArrayList.join(" ")}"` : '""';
+                });
+
+                // Stitch row properties into clean spreadsheet string segments
+                csvContent += `"${cleanRowIndex}","${teacherName}","${tData.totalHours.toFixed(2)}",` + activeLineCellsBundleCSV.join(",") + "\n";
+            });
+
+            // 4. Trigger localized download routing anchor sequence links execution
+            const matrixDownloadAnchor = document.createElement("a");
+            matrixDownloadAnchor.setAttribute("href", encodeURI(csvContent));
+            matrixDownloadAnchor.setAttribute("download", `master_faculty_invigilation_timeline_matrix.csv`);
+            document.body.appendChild(matrixDownloadAnchor);
+            matrixDownloadAnchor.click();
+            matrixDownloadAnchor.remove();
+            fireToast("Master grid timeline matrix generated and downloaded! ✓");
+        }
+
         function downloadReport(reportType) {
             if (sessionsData.length === 0) return alert("Ensure a database has been actively parsed first.");
             let csv = "data:text/csv;charset=utf-8,";
@@ -612,10 +676,8 @@
                 const sorted = [...sessionsData].sort((a, b) => {
                     const formComp = String(a.form).localeCompare(String(b.form), undefined, {numeric: true});
                     if (formComp !== 0) return formComp;
-                    
                     const dateComp = getDateSortWeight(a.dateString) - getDateSortWeight(b.dateString);
                     if (dateComp !== 0) return dateComp;
-                    
                     return getTimeSortWeight(a.timeWindow) - getTimeSortWeight(b.timeWindow);
                 });
 
@@ -631,9 +693,7 @@
                     const teacherDuties = [];
                     sessionsData.forEach(s => {
                         s.posts.forEach(p => {
-                            if (p.staff === tName) {
-                                teacherDuties.push({ session: s, post: p });
-                            }
+                            if (p.staff === tName) { teacherDuties.push({ session: s, post: p }); }
                         });
                     });
                     
