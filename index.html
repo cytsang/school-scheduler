@@ -23,11 +23,27 @@
         </div>
     </header>
 
-    <section class="bg-white p-3 border-b border-slate-200 shadow-xs flex items-center gap-3 shrink-0">
-        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">API Endpoint:</label>
-        <input type="text" id="script-url" class="flex-[2] bg-slate-50 border border-slate-300 text-xs px-3 py-2 rounded-lg font-mono text-slate-600 focus:outline-blue-500" placeholder="Paste your published Google Apps Script URL here..." />
-        <button onclick="fetchSheetSchema()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all cursor-pointer">1. Fetch Sheet Data</button>
-        <button onclick="runAutoScheduler()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all cursor-pointer shadow-md">⚡ 2. Run Auto-Scheduler</button>
+    <section class="bg-white p-3 border-b border-slate-200 shadow-xs flex flex-wrap items-center gap-3 shrink-0">
+        <div class="flex items-center gap-2 flex-1 min-w-[300px]">
+            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider pl-1">API Endpoint:</label>
+            <input type="text" id="script-url" class="w-full bg-slate-50 border border-slate-300 text-xs px-3 py-2 rounded-lg font-mono text-slate-600 focus:outline-blue-500" placeholder="Paste your published Google Apps Script URL here..." />
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="fetchSheetSchema()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all cursor-pointer">1. Fetch Sheet Data</button>
+            <button onclick="runAutoScheduler()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all cursor-pointer shadow-md">⚡ 2. Run Auto-Scheduler</button>
+        </div>
+
+        <div class="h-6 w-px bg-slate-300 mx-1 hidden md:block"></div>
+
+        <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
+            <span class="text-[10px] font-bold text-slate-400 uppercase px-2">Progress Recovery:</span>
+            <button onclick="exportWorkspaceJSON()" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-md cursor-pointer transition-colors">💾 Backup Progress</button>
+            <label class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-bold px-3 py-1.5 rounded-md cursor-pointer transition-colors">
+                📂 Import Backup
+                <input type="file" id="import-json-file" class="hidden" accept=".json" onchange="importWorkspaceJSON(event)" />
+            </label>
+        </div>
     </section>
 
     <div class="flex flex-1 overflow-hidden">
@@ -60,7 +76,7 @@
                 <div class="xl:col-span-2 flex flex-col items-center justify-center p-20 border-2 border-dashed border-slate-200 rounded-2xl bg-white text-slate-400">
                     <span class="text-4xl mb-2">📊</span>
                     <p class="text-sm font-medium">Canvas Workspace Blank</p>
-                    <p class="text-xs text-slate-400 mt-0.5">Step 1: Click "Fetch Sheet Data" to build your interface layout parameters.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Step 1: Click "Fetch Sheet Data" or load a saved ".json" progress file.</p>
                 </div>
             </div>
         </main>
@@ -98,7 +114,55 @@
             }
         }
 
-        // --- NEW MONTE CARLO RANDOM RESAMPLING ENGINE ---
+        // --- PROGRESS PORTING SYSTEM (SAVE/LOAD STATE ENGINES) ---
+        
+        // Function 1: Package current memory state into a downloadable text-JSON schema file
+        function exportWorkspaceJSON() {
+            if (sessionsData.length === 0) return alert("There is no active calendar state data to export yet!");
+            
+            const backupPackage = {
+                staffRoster: staffRoster,
+                sessionsData: sessionsData,
+                savedAt: new Date().toISOString()
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPackage));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `scheduler_progress_backup_${document.getElementById("script-url").value ? 'synced' : 'local'}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        // Function 2: Read an uploaded JSON file and map assignments right back onto the active canvas boards
+        function importWorkspaceJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.staffRoster || !importedData.sessionsData) {
+                        throw new Error("Invalid file format. This does not look like a progress backup file generated by this system.");
+                    }
+                    
+                    staffRoster = importedData.staffRoster;
+                    sessionsData = importedData.sessionsData;
+                    
+                    refreshAppPipeline();
+                    fireToast("Saved progress restored successfully! ✓");
+                } catch (err) {
+                    alert("Failed to read progress file:\n" + err.message);
+                }
+            };
+            reader.readAsText(file);
+            // Reset input element so user can upload the same file consecutively if needed
+            event.target.value = '';
+        }
+
         function runAutoScheduler() {
             if (sessionsData.length === 0) return alert("Please fetch spreadsheet data first before triggering the scheduler!");
 
@@ -106,16 +170,13 @@
             let finalVariance = 99.0;
             let success = false;
 
-            // Loop attempts to solve the constraint puzzle perfectly
             for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-                // 1. Reset all assignments that are not pinned by you in Pre_Assignments
                 sessionsData.forEach(session => {
                     session.posts.forEach(post => {
                         if (!post.pinned) post.staff = null;
                     });
                 });
 
-                // 2. Run a randomized greedy layout assignment sweep
                 let chronologicalSessions = [...sessionsData].sort((a, b) => a.id.localeCompare(b.id));
                 let brokenSlotDetected = false;
 
@@ -142,7 +203,6 @@
                             break; 
                         }
 
-                        // Introduce randomization factor to explore alternative schedule pathways
                         candidatePool.sort((a, b) => {
                             const scoreA = staffRoster[a].totalHours + (Math.random() * 2.0); 
                             const scoreB = staffRoster[b].totalHours + (Math.random() * 2.0);
@@ -158,15 +218,12 @@
                     if (brokenSlotDetected) break;
                 }
 
-                // 3. Evaluate iteration quality metrics
                 if (!brokenSlotDetected) {
                     computeOperationalHours();
                     const balanceHours = Object.values(staffRoster).map(t => t.totalHours);
                     finalVariance = Math.max(...balanceHours) - Math.min(...balanceHours);
 
-                    // Hard constraint verification: If variance is under 0.5 hours, we win!
                     if (finalVariance <= 0.501) { 
-                        console.log(`Valid schedule found on attempt ${attempt}. Variance: ${finalVariance.toFixed(2)}h`);
                         success = true;
                         break;
                     }
