@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Invigilation Workspace Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        .drag-over { border: 2px dashed #2563eb !important; background-color: #f0f7ff !important; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Top Banner App Layout -->
+    <header class="bg-slate-900 text-white px-6 py-4 shadow-md flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-bold tracking-tight">Exam Invigilation Scheduler Tool</h1>
+            <p class="text-xs text-slate-400">Live Workspace Integration Architecture Panel</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="downloadCSV('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors">Export by Form</button>
+            <button onclick="downloadCSV('teacher')" class="bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors">Export by Teacher</button>
+        </div>
+    </header>
+
+    <!-- Operational Controls Configuration Panel Row -->
+    <section class="bg-white p-4 border-b border-slate-200 shadow-xs flex items-center gap-4">
+        <input type="text" id="api-url-input" class="flex-1 bg-slate-50 border border-slate-300 text-sm px-3 py-2 rounded-lg font-mono text-slate-600" placeholder="Paste your Google Apps Script Web App URL here..." />
+        <button onclick="connectToDatabase()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-5 py-2 rounded-lg cursor-pointer transition-all">Connect Sheet</button>
+    </section>
+
+    <!-- Primary Layout Matrix Splits -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Roster Column -->
+        <aside class="w-80 bg-white border-r border-slate-200 p-4 overflow-y-auto flex flex-col justify-between">
+            <div>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Live Roster Balances</h2>
+                <div id="teacher-roster" class="space-y-2">
+                    <p class="text-xs text-slate-400 italic">Connect your Google Sheet deployment link above to extract your live faculty list profiles...</p>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-slate-100 text-xs font-semibold text-slate-500">
+                Max Hour Spread Variance Target: <span id="variance-readout" class="font-bold text-slate-800">0.00h</span>
+            </div>
+        </aside>
+
+        <!-- Dynamic Grid Workspace Area -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            <div id="sessions-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <!-- Javascript maps operational cards here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Active Popup Error Notification Frame Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
+        <span class="text-red-400 font-bold">⚠️</span> <span id="toast-message">Constraint flagged.</span>
+    </div>
+
+    <script>
+        let teachers = {};
+        let examSessions = [];
+
+        async function connectToDatabase() {
+            const url = document.getElementById("api-url-input").value.trim();
+            if(!url) return alert("Please specify a valid connection deployment link url script token structure first.");
+            
+            document.getElementById("sessions-grid").innerHTML = `<p class='text-sm text-slate-400 italic animate-pulse'>Querying Sheet database schema sheets rows variables...</p>`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if(data.error) throw new Error(data.error);
+                
+                teachers = data.teachers;
+                examSessions = data.examSessions;
+                updatePipeline();
+            } catch(err) {
+                alert("Database initialization crash: " + err.message + "\nCheck deployment parameters authorization permissions settings.");
+            }
+        }
+
+        function calculateHours() {
+            Object.keys(teachers).forEach(name => {
+                teachers[name].totalHours = teachers[name].extraHours;
+                teachers[name].dailyDuties = {};
+            });
+
+            examSessions.forEach(session => {
+                session.posts.forEach(post => {
+                    if (post.staff && teachers[post.staff]) {
+                        teachers[post.staff].totalHours += post.weight;
+                        if (!teachers[post.staff].dailyDuties[session.dateString]) teachers[post.staff].dailyDuties[session.dateString] = 0;
+                        teachers[post.staff].dailyDuties[session.dateString]++;
+                    }
+                });
+            });
+        }
+
+        function renderRoster() {
+            const container = document.getElementById("teacher-roster");
+            container.innerHTML = "";
+
+            const hours = Object.values(teachers).map(t => t.totalHours);
+            if(hours.length > 0) {
+                const variance = Math.max(...hours) - Math.min(...hours);
+                document.getElementById("variance-readout").innerText = `${variance.toFixed(2)}h` + (variance > 0.5 ? " (Exceeds 0.5h target!)" : " (Fair ✓)");
+            }
+
+            Object.entries(teachers).forEach(([name, data]) => {
+                const card = document.createElement("div");
+                card.className = "bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-xs cursor-grab flex justify-between items-center hover:border-blue-400 transition-all";
+                card.draggable = true;
+                card.innerHTML = `<div><b class='text-slate-700'>${name}</b></div> <span class='font-mono font-bold bg-slate-200/60 px-1.5 py-0.5 rounded'>${data.totalHours.toFixed(2)}h</span>`;
+                
+                card.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", name));
+                container.appendChild(card);
+            });
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById("sessions-grid");
+            grid.innerHTML = "";
+
+            examSessions.forEach(session => {
+                const card = document.createElement("div");
+                card.className = "bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col justify-between";
+                card.innerHTML = `
+                    <div class='mb-2'>
+                        <span class='text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded'>${session.form} | ${session.venue}</span>
+                        <h3 class='text-md font-bold text-slate-900 mt-1'>${session.subject}</h3>
+                        <p class='text-[11px] text-slate-400'>📅 ${session.dateString} | 🕒 ${session.timeWindow} (${session.duration}h)</p>
+                    </div>
+                    <div class='space-y-1.5 pt-2 border-t border-slate-100' id='zone-${session.id}'></div>
+                `;
+                grid.appendChild(card);
+
+                const container = document.getElementById(`zone-${session.id}`);
+                session.posts.forEach(post => {
+                    const row = document.createElement("div");
+                    row.className = "flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs";
+                    row.innerHTML = `
+                        <div><div><b>${post.role}</b></div><span class='text-[10px] text-slate-400'>${post.time} (${post.weight}h)</span></div>
+                        <div class='dropzone w-40 h-8 border border-dashed border-slate-300 rounded bg-white flex items-center justify-center relative overflow-hidden' data-sid='${session.id}' data-key='${post.key}'>
+                            ${post.staff ? `<div class='absolute inset-0 bg-blue-50 text-blue-800 px-2 flex items-center justify-between font-semibold'><span>👤 ${post.staff}</span><button onclick="clearSlot('${session.id}','${post.key}')" class='text-slate-400 hover:text-red-500 font-bold ml-1 cursor-pointer'>×</button></div>` : `<span class='text-[10px] text-slate-400 italic'>Empty</span>`}
+                        </div>
+                    `;
+                    container.appendChild(row);
+
+                    const dz = row.querySelector(".dropzone");
+                    if (!post.staff) {
+                        dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("drag-over"); });
+                        dz.addEventListener("dragleave", () => dz.classList.remove("drag-over"));
+                        dz.addEventListener("drop", (e) => {
+                            e.preventDefault();
+                            dz.classList.remove("drag-over");
+                            executeAssignment(e.dataTransfer.getData("text/plain"), session.id, post.key);
+                        });
+                    }
+                });
+            });
+        }
+
+        function executeAssignment(name, sid, key) {
+            const session = examSessions.find(s => s.id === sid);
+            const post = session.posts.find(p => p.key === key);
+            const profile = teachers[name];
+
+            if (profile.unavailableBlocks.includes(session.dayBlock)) return triggerToast(`Conflict: ${name} is unavailable during block row window [${session.dayBlock}]!`);
+            if (profile.dailyDuties[session.dateString] >= 1) return triggerToast(`Conflict: ${name} already holds an active duty assignment profile on date ${session.dateString}.`);
+
+            post.staff = name;
+            updatePipeline();
+        }
+
+        function clearSlot(sid, key) {
+            examSessions.find(s => s.id === sid).posts.find(p => p.key === key).staff = null;
+            updatePipeline();
+        }
+
+        function triggerToast(msg) {
+            const t = document.getElementById("toast");
+            document.getElementById("toast-message").innerText = msg;
+            t.className = t.className.replace("translate-y-20 opacity-0", "translate-y-0 opacity-100");
+            setTimeout(() => { t.className = t.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0"); }, 3500);
+        }
+
+        function updatePipeline() { calculateHours(); renderRoster(); renderGrid(); }
+
+        function downloadCSV(type) {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            if (type === 'form') {
+                csvContent += "Form,Date,Time,Subject,Venue,Post,Assigned Staff\n";
+                examSessions.forEach(s => {
+                    s.posts.forEach(p => {
+                        csvContent += `"${s.form}","${s.dateString}","${s.timeWindow}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`;
+                    });
+                });
+            } else {
+                csvContent += "Teacher Name,Date,Venue,Subject,Assigned Post,Time Window,Weight Hours\n";
+                Object.keys(teachers).forEach(tName => {
+                    examSessions.forEach(s => {
+                        s.posts.forEach(p => {
+                            if(p.staff === tName) {
+                                csvContent += `"${tName}","${s.dateString}","${s.venue}","${s.subject}","${p.role}","${s.timeWindow}","${p.weight}"\n`;
+                            }
+                        });
+                    });
+                });
+            }
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `invigilation_duty_report_by_${type}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
