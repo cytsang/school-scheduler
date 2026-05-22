@@ -6,6 +6,7 @@
     <title>Automated School Invigilation Local Workspace</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
     <style>
         .drag-over { border: 2px dashed #2563eb !important; background-color: #eff6ff !important; }
         .pinned-card { background: #f8fafc !important; border-color: #cbd5e1 !important; cursor: not-allowed !important; }
@@ -23,11 +24,12 @@
             <h1 class="text-md font-bold tracking-tight">Automated Exam Invigilation Workspace</h1>
             <p class="text-[11px] text-slate-400">100% Serverless Local Excel (.xlsx) Engine Mode</p>
         </div>
-        <div class="flex gap-2">
-            <button onclick="toggleDocumentationModal(true)" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors mr-2 flex items-center gap-1">📖 View Data Entry Guide</button>
-            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
-            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
+        <div class="flex gap-2 items-center">
+            <button onclick="toggleDocumentationModal(true)" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors mr-2 flex items-center gap-1">📖 View Data Entry Guide</button>
+            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
+            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
             <button onclick="downloadMasterGridReport()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📅 Export Master Grid Matrix</button>
+            <button onclick="downloadLandscapeWordDocument()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors shadow-md flex items-center gap-1">📄 Export Landscape Word Document</button>
         </div>
     </header>
 
@@ -156,7 +158,7 @@
     </div>
 
     <div id="documentation-modal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-2xl w-[85%] max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+        <div class="bg-white rounded-2xl w-[85%] max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
             <div class="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0">
                 <div>
                     <h2 class="text-white font-bold text-base tracking-tight">📖 Template Data Entry & Shorthand Code Manual</h2>
@@ -168,24 +170,23 @@
             <div class="flex-1 overflow-y-auto p-6 space-y-6 text-slate-700 text-xs leading-relaxed bg-slate-50">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                     <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">👤 Sheet 1: Staff_Roster</h3>
-                    <p class="mb-2 text-slate-500">Initializes teachers, system identification codes, and target subject qualification classifications.</p>
                     <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Discipline Column:</strong> Enter <span class="bg-slate-100 font-mono font-bold px-1 rounded text-purple-700">Y</span> to flag a Discipline Master/Mistress. The engine instantly allocates their mandatory <span class="font-semibold">+1.0h baseline offset contribution credit value</span> automatically.</li>
-                        <li><strong class="text-slate-800 font-semibold">Chinese / English / Maths Columns:</strong> Enter <span class="bg-slate-100 font-mono font-bold px-1 rounded text-blue-700">Y</span> to register subject specializations. These flags are cross-checked by the allocation engine rules.</li>
+                        <li><strong class="text-slate-800 font-semibold">Discipline Column:</strong> Enter <span class="bg-slate-100 font-mono font-bold px-1 rounded text-purple-700">Y</span> to flag a Discipline Master/Mistress. Grants a <span class="font-semibold">+1.0h baseline offset credit</span> automatically.</li>
+                        <li><strong class="text-slate-800 font-semibold">Chinese / English / Maths Columns:</strong> Enter <span class="bg-slate-100 font-mono font-bold px-1 rounded text-blue-700">Y</span> to register subject specializations.</li>
                     </ul>
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                     <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📅 Sheet 2: Availability</h3>
-                    <p class="mb-2 text-slate-500">Configures individual leave periods and out-of-school scheduling block restrictions.</p>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Date Column Headers:</strong> Write dates exclusively as standard 4-digit shorthand texts (e.g., <span class="font-mono bg-slate-100 font-bold px-1 rounded">0608</span> for June 8th, <span class="font-mono bg-slate-100 font-bold px-1 rounded">0612</span> for June 12th).</li>
+                    <p class="mb-2 text-slate-500">Configures leaves using exact structural math intersection envelopes:</p>
+                    <ul class="list-disc pl-5 space-y-2">
+                        <li><strong class="text-slate-800 font-semibold">Date Headers:</strong> Enter as a 4-digit short text string (e.g., <span class="font-mono bg-slate-100 font-bold px-1 rounded">0608</span> or <span class="font-mono bg-slate-100 font-bold px-1 rounded">0612</span>).</li>
                         <li><strong class="text-slate-800 font-semibold">Cell Value Block Tokens:</strong>
-                            <ul class="list-circle pl-5 mt-1 space-y-0.5">
-                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">A</span> = Unavailable during Block 1 (Exams starting before 10:00 AM).</li>
-                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">B</span> = Unavailable during Block 2 (Exams starting between 10:00 AM - 1:00 PM).</li>
-                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">C</span> = Unavailable during Block 3 (Exams starting after 1:00 PM).</li>
-                                <li><em>Combinations:</em> String codes together freely. Entering <span class="font-mono font-bold bg-slate-100 px-1 rounded">AB</span> blocks morning/midday, while <span class="font-mono font-bold bg-slate-100 px-1 rounded">ABC</span> locks out the full day.</li>
+                            <ul class="list-circle pl-5 mt-1 space-y-1">
+                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">A</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">08:00 - 10:30</span>.</li>
+                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">B</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">10:30 - 13:00</span>.</li>
+                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">C</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">13:00 - 16:00</span>.</li>
+                                <li><em>Overlap Protection Engine:</em> Typing <span class="font-mono bg-slate-100 px-1 rounded">A</span> will block an exam row running from 10:15 - 11:45 because it intercepts the 08:00-10:30 boundary window mathematically.</li>
                             </ul>
                         </li>
                     </ul>
@@ -193,43 +194,26 @@
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                     <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">🛠️ Sheet 3: Session_Rules</h3>
-                    <p class="mb-2 text-slate-500">Assigns macro-level departmental constraints across matching examination clusters.</p>
                     <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Target_Type:</strong> Tells the system the target column to monitor. Must match one of three exact keywords: <span class="font-mono bg-slate-100 font-bold px-1 rounded">Subject</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Form</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Session_ID</span>.</li>
-                        <li><strong class="text-slate-800 font-semibold">Constraint_Condition:</strong> The command parameter that dictates who is allowed to handle the duty:
-                            <ul class="list-circle pl-5 mt-1 space-y-0.5 font-medium text-slate-600">
-                                <li><span class="font-mono bg-blue-50 border border-blue-100 text-blue-700 font-bold px-1 rounded">ONLY_CHINESE_TEACHERS</span></li>
-                                <li><span class="font-mono bg-blue-50 border border-blue-100 text-blue-700 font-bold px-1 rounded">ONLY_ENGLISH_TEACHERS</span></li>
-                                <li><span class="font-mono bg-blue-50 border border-blue-100 text-blue-700 font-bold px-1 rounded">ONLY_MATHS_TEACHERS</span></li>
-                                <li><span class="font-mono bg-orange-50 border border-orange-100 text-orange-700 font-bold px-1 rounded">NO_BEGINNER_POST</span></li>
-                            </ul>
-                        </li>
+                        <li><strong class="text-slate-800 font-semibold">Target_Type:</strong> Options include <span class="font-mono bg-slate-100 font-bold px-1 rounded">Subject</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Form</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Session_ID</span>.</li>
+                        <li><strong class="text-slate-800 font-semibold">Constraint_Condition:</strong> Codes include <span class="font-mono text-blue-700 font-bold">ONLY_CHINESE_TEACHERS</span>, <span class="font-mono text-blue-700 font-bold">ONLY_ENGLISH_TEACHERS</span>, <span class="font-mono text-blue-700 font-bold">ONLY_MATHS_TEACHERS</span>, and <span class="font-mono text-orange-700 font-bold">NO_BEGINNER_POST</span>.</li>
                     </ul>
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📝 Sheet 4: Exam_Master</h3>
-                    <p class="mb-2 text-slate-500">Defines your master examination timetable baseline grid timeline rows.</p>
+                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">💡 Sheet 4: Exam_Master</h3>
                     <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Venue Column = <span class="font-mono font-bold text-blue-700 bg-slate-100 px-1 rounded">OC</span>:</strong> Code for "Own Classroom". The portal automatically explodes this single row line into <span class="font-semibold">5 distinct, independent classroom rows</span> on your allocation board layout.</li>
-                        <li><strong class="text-slate-800 font-semibold">Form Column:</strong> Combined codes are auto-supported. Entering <span class="font-mono font-bold bg-slate-100 px-1 rounded">J</span> represents all Junior classes (Form 1 and 2), while entering <span class="font-mono font-bold bg-slate-100 px-1 rounded">S</span> maps Senior classes (Form 4 and 5) cleanly during filter selection events.</li>
-                        <li><strong class="text-slate-800 font-semibold">Posts Required Token Strings:</strong> String character codes together to establish required staff roles:
-                            <ul class="list-circle pl-5 mt-1 space-y-0.5">
-                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">C</span> = Chief Invigilator slot (Auto-splits into Shift A and Shift B if total duration exceeds 2 hours).</li>
-                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">I</span> = Invigilator position (Can write duplicates sequentially, e.g., <span class="font-mono font-bold bg-slate-100 px-1.5 rounded">II</span> creates Invigilator 1 and Invigilator 2 slots).</li>
-                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">B</span> = Beginner role ($0.25\text{h}$ flat value).</li>
-                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">E</span> = Ender role ($0.25\text{h}$ flat value).</li>
-                            </ul>
-                        </li>
+                        <li><strong class="text-slate-800 font-semibold">Venue Column = <span class="font-mono font-bold text-blue-700 bg-slate-100 px-1 rounded">OC</span>:</strong> Auto-explodes into <span class="font-semibold">5 independent classroom rows</span>.</li>
+                        <li><strong class="text-slate-800 font-semibold">Form Column:</strong> Combined flags <span class="font-mono font-bold bg-slate-100 px-1 rounded">J</span> maps Forms 1 & 2, while <span class="font-mono font-bold bg-slate-100 px-1 rounded">S</span> maps Forms 4 & 5.</li>
+                        <li><strong class="text-slate-800 font-semibold">Required Tokens:</strong> <span class="font-mono font-bold">C</span> (Chief), <span class="font-mono font-bold">I</span> (Invigilator), <span class="font-mono font-bold">B</span> (Beginner), <span class="font-mono font-bold">E</span> (Ender).</li>
                     </ul>
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                     <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📌 Sheet 5: Pre_Assignments</h3>
-                    <p class="mb-2 text-slate-500">Locks specific staff members into pre-determined exam slots before the auto-allocation scheduler triggers.</p>
                     <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Post Role Shorthand Translation:</strong> Supports loose entries like <span class="font-mono bg-slate-100 font-bold px-1 rounded">C</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Chief</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">I</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Invig</span>. The sequential engine stacks them neatly without duplicate overwrite crashes.</li>
-                        <li><strong class="text-slate-800 font-semibold">Blank Start / End Cells Inheritance:</strong> Leave timing cells blank to automatically inherit global timeframe metrics from `Exam_Master`. If an exam splits into Shift A and Shift B, the system safely links the pre-assigned teacher into <span class="font-semibold">both split shift slots</span>.</li>
+                        <li><strong class="text-slate-800 font-semibold">Post Shorthand:</strong> Supports short text tags like <span class="font-mono bg-slate-100 font-bold px-1 rounded">C</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Chief</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">I</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Invig</span> mapped sequentially.</li>
+                        <li><strong class="text-slate-800 font-semibold">Blank Timestamps:</strong> Auto-inherits parent timing blocks from Exam_Master and duplicates across both shifts for split sessions.</li>
                     </ul>
                 </div>
             </div>
@@ -250,14 +234,10 @@
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
 
-        // NEW FUNCTION: Toggles visibility for the user-facing documentation modal overlay smoothly
         function toggleDocumentationModal(shouldOpen) {
             const el = document.getElementById("documentation-modal");
-            if (shouldOpen) {
-                el.classList.remove("hidden");
-            } else {
-                el.classList.add("hidden");
-            }
+            if (shouldOpen) el.classList.remove("hidden");
+            else el.classList.add("hidden");
         }
 
         function processLocalExcelWorkbook(event) {
@@ -321,11 +301,13 @@
                     isMaths: String(row["Maths"] || "").toUpperCase().trim() === "Y",
                     isDiscipline: isDisc,
                     extraHours: isDisc ? 1.0 : 0.0,
-                    unavailableBlocks: []
+                    unavailableBlocks: [],
+                    rawAvailabilityRow: row // Retained for deep block lookup mechanics
                 };
             });
         }
 
+        // --- FIXED CRITICAL TIME-INTERVAL INTERSECTION OVERLAP PARSER ENGINE ---
         function parseAvailabilityConstraints(rows) {
             if (rows.length === 0) return;
             const headers = Object.keys(rows[0]);
@@ -337,15 +319,46 @@
                 headers.forEach(header => {
                     if (header === "StaffName" || header === "StaffID") return;
                     const rawDateKey = cleanShorthandString(header);
-                    const cellValue = String(row[header] || "").toUpperCase().trim();
+                    const tokens = String(row[header] || "").toUpperCase().trim();
 
-                    if (cellValue !== "") {
-                        if (cellValue.includes("A")) staffRoster[sName].unavailableBlocks.push(rawDateKey + " (B1)");
-                        if (cellValue.includes("B")) staffRoster[sName].unavailableBlocks.push(rawDateKey + " (B2)");
-                        if (cellValue.includes("C")) staffRoster[sName].unavailableBlocks.push(rawDateKey + " (B3)");
+                    if (tokens !== "") {
+                        // Store the exact literal lockout token strings indexed by date string keys
+                        if (!staffRoster[sName].dailyLockoutTokens) staffRoster[sName].dailyLockoutTokens = {};
+                        staffRoster[sName].dailyLockoutTokens[rawDateKey] = tokens;
                     }
                 });
             });
+        }
+
+        function checkIsTeacherTimeConflicting(teacherName, dateStringKey, sessionStartStr, sessionEndStr) {
+            const teacher = staffRoster[teacherName];
+            if (!teacher || !teacher.dailyLockoutTokens) return false;
+            
+            const activeDayTokens = teacher.dailyLockoutTokens[dateStringKey];
+            if (!activeDayTokens) return false; 
+            
+            // Mathematical Conversion coordinates helper closure
+            const toMins = (timeStr) => {
+                const p = timeStr.split(":");
+                return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+            };
+
+            const exStart = toMins(sessionStartStr);
+            const exEnd = toMins(sessionEndStr);
+
+            // Establish strict time block bounds
+            const blocks = [];
+            if (activeDayTokens.includes("A")) blocks.push({ s: toMins("08:00"), e: toMins("10:30") });
+            if (activeDayTokens.includes("B")) blocks.push({ s: toMins("10:30"), e: toMins("13:00") });
+            if (activeDayTokens.includes("C")) blocks.push({ s: toMins("13:00"), e: toMins("16:00") });
+
+            // Evaluate Interval Intersections Matrix: (Start1 < End2) AND (End1 > Start2)
+            for (let b of blocks) {
+                if (exStart < b.e && exEnd > b.s) {
+                    return true; // Mathematical overlap detected!
+                }
+            }
+            return false;
         }
 
         function buildRulesMemory(rows) {
@@ -393,9 +406,6 @@
                 const venueVal = String(row["Venue"] || "").trim().toUpperCase();
                 const tokenString = String(row["Posts Required"] || "").toUpperCase().trim();
 
-                const blockSuffix = getBlockSegment(startTimeStr);
-                const computedDayBlock = rawDateInput + " (" + blockSuffix + ")";
-
                 let appliedRule = "NONE";
                 if (rulesMap["Session_ID"] && rulesMap["Session_ID"][sId]) appliedRule = rulesMap["Session_ID"][sId];
                 else if (rulesMap["Subject"] && rulesMap["Subject"][subjVal]) appliedRule = rulesMap["Subject"][subjVal];
@@ -411,14 +421,16 @@
                     const session = {
                         id: expandedSessionId,
                         baseSessionId: sId,
+                        rawDateKey: rawDateInput, // Preserved for deep loop evaluation checks
                         dateString: dateString,
+                        startTime: startTimeStr,
+                        endTime: endTimeStr,
                         timeWindow: startTimeStr + " - " + endTimeStr,
                         duration: rawDuration,
                         durationWarning: durationWarning,
                         form: formVal,
                         subject: subjVal,
                         venue: expandedVenueName,
-                        dayBlock: computedDayBlock,
                         constraintRule: appliedRule,
                         posts: []
                     };
@@ -453,10 +465,10 @@
                     tokens.forEach(token => {
                         if (token === "C") {
                             if (shouldTruncate) {
-                                session.posts.push(createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration));
-                                session.posts.push(createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration));
+                                session.posts.push(createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
+                                session.posts.push(createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
                             } else {
-                                session.posts.push(createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration));
+                                session.posts.push(createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr));
                             }
                         } else if (token === "I") {
                             const currentLabel = "Invigilator " + invigCounter;
@@ -464,15 +476,15 @@
                             invigCounter++;
 
                             if (shouldTruncate) {
-                                session.posts.push(createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration));
-                                session.posts.push(createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration));
+                                session.posts.push(createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
+                                session.posts.push(createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
                             } else {
-                                session.posts.push(createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration));
+                                session.posts.push(createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr));
                             }
                         } else if (token === "B") {
-                            session.posts.push(createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25));
+                            session.posts.push(createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25, startTimeStr, endTimeStr));
                         } else if (token === "E") {
-                            session.posts.push(createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25));
+                            session.posts.push(createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25, startTimeStr, endTimeStr));
                         }
                     });
 
@@ -491,8 +503,6 @@
 
                 sessionsData.forEach(s => {
                     if (s.baseSessionId === targetSid || s.id === targetSid) {
-                        let foundSlotToPin = false;
-
                         for (let p of s.posts) {
                             if (p.pinned) continue; 
 
@@ -510,12 +520,13 @@
                             if (matchFound) {
                                 p.staff = assignedStaffName;
                                 p.pinned = true; 
-                                foundSlotToPin = true;
 
                                 const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
                                 const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
                                 if (customStart && customEnd) {
                                     p.time = customStart + " - " + customEnd;
+                                    p.startBounds = customStart;
+                                    p.endBounds = customEnd;
                                 }
                                 break; 
                             }
@@ -564,15 +575,8 @@
             return str;
         }
 
-        function createPostObject(role, key, time, weight) {
-            return { role: role, key: key, time: time, weight: weight, staff: null, pinned: false };
-        }
-
-        function getBlockSegment(timeStr) {
-            const hour = parseInt(timeStr.split(":")[0], 10);
-            if (hour < 10) return "B1";
-            if (hour < 13) return "B2";
-            return "B3";
+        function createPostObject(role, key, time, weight, sBound, eBound) {
+            return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
         }
 
         function addHoursToTime(timeStr, hoursToAdd) {
@@ -695,7 +699,7 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid structure data blueprints.");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid blueprints.");
                     staffRoster = importedData.staffRoster; sessionsData = importedData.sessionsData;
                     populateFilterDropdownOptions(); refreshAppPipeline();
                     fireToast("Progress backup recovery loaded! ✓");
@@ -704,6 +708,7 @@
             reader.readAsText(file); event.target.value = '';
         }
 
+        // --- UPGRADED TWO-TIERED VARIANCE OPTIMIZATION BALANCING AUTO SCHEDULER ENGINE ---
         function runAutoScheduler() {
             if (sessionsData.length === 0) return alert("Please upload an Excel workbook before running allocation sweeps!");
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
@@ -722,20 +727,40 @@
                     for (let post of session.posts) {
                         if (post.staff) continue;
                         computeOperationalHours();
-                        let candidatePool = Object.keys(staffRoster).filter(tName => {
+                        
+                        // Pass 1: Gather ALL mathematically compatible candidates
+                        let basePool = Object.keys(staffRoster).filter(tName => {
                             const t = staffRoster[tName];
-                            if (t.unavailableBlocks.includes(session.dayBlock)) return false;
+                            
+                            // Check rule 1: Enforce math intersection interval protection bounds
+                            if (checkIsTeacherTimeConflicting(tName, session.rawDateKey, post.startBounds, post.endBounds)) return false;
+                            
+                            // Check rule 2: Single duty constraint per calendar date string boundary limit
                             if (t.dailyDuties && t.dailyDuties[session.dateString] >= 1) return false;
+                            
+                            // Check rule 3: Subject flags verification checks
                             if (session.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return false;
                             if (session.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return false;
                             if (session.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return false;
                             return true;
                         });
-                        if (candidatePool.length === 0) { brokenSlotDetected = true; break; }
-                        candidatePool.sort((a, b) => {
+
+                        if (basePool.length === 0) { brokenSlotDetected = true; break; }
+
+                        // TWO-TIER CRITERIA SELECTION: Filter for teachers who are 100% free for the full day
+                        let pristineTierPool = basePool.filter(tName => {
+                            const tokens = staffRoster[tName].dailyLockoutTokens;
+                            return !tokens || !tokens[session.rawDateKey]; 
+                        });
+
+                        // Fallback implementation logic cascade
+                        let targetSelectionPool = pristineTierPool.length > 0 ? pristineTierPool : basePool;
+
+                        targetSelectionPool.sort((a, b) => {
                             return (staffRoster[a].totalHours + Math.random() * 0.4) - (staffRoster[b].totalHours + Math.random() * 0.4);
                         });
-                        post.staff = candidatePool[0];
+                        
+                        post.staff = targetSelectionPool[0];
                         if (!staffRoster[post.staff].dailyDuties) staffRoster[post.staff].dailyDuties = {};
                         if (!staffRoster[post.staff].dailyDuties[session.dateString]) staffRoster[post.staff].dailyDuties[session.dateString] = 0;
                         staffRoster[post.staff].dailyDuties[session.dateString]++;
@@ -749,7 +774,7 @@
                     if (finalVariance <= (allowedVarianceWindow + 0.001)) { success = true; break; }
                 }
             }
-            if (!success) { alert(`⚠️ Hard Variance Target Unreached:\nCould not complete layout under your selected ${allowedVarianceWindow.toFixed(2)}h variance ceiling limit rule.\n(Best execution spread: ${finalVariance.toFixed(2)}h).`); }
+            if (!success) { alert(`⚠️ Hard Variance Target Unreached:\nCould not complete layout under your selected ${allowedVarianceWindow.toFixed(2)}h variance ceiling limit.\n(Best execution spread: ${finalVariance.toFixed(2)}h).`); }
             else { fireToast(`Auto-scheduling completed within variance parameters limit! ✓`); }
             refreshAppPipeline();
         }
@@ -851,7 +876,7 @@
 
                         structuralCellsBundleHTML = `
                             <td class="w-[6%] pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white truncate" rowspan="${totalPostRowsCount}">${session.id}</td>
-                            <td class="w-[8%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
+                            <td class="w-[8%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.startTime}</td>
                             <td class="w-[4%] border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700 truncate" rowspan="${totalPostRowsCount}">${session.form}</td>
                             <td class="w-[16%] border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.subject}<br>${lockBadge}</td>
                             <td class="w-[14%] border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
@@ -893,7 +918,10 @@
 
         function commitDropAssignment(teacherName, sessionId, postKey) {
             const s = sessionsData.find(x => x.id === sessionId); const p = s.posts.find(y => y.key === postKey); const t = staffRoster[teacherName];
-            if (t.unavailableBlocks.includes(s.dayBlock)) return fireToast(`Conflict: ${teacherName} unavailable during block: [${s.dayBlock}]`);
+            
+            if (checkIsTeacherTimeConflicting(teacherName, s.rawDateKey, p.startBounds, p.endBounds)) {
+                return fireToast(`Conflict: ${teacherName} overlaps an unavailable block window on this day.`);
+            }
             if (t.dailyDuties[s.dateString] >= 1) return fireToast(`Conflict: ${teacherName} already assigned on: ${s.dateString}`);
             if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return fireToast(`Rule Violation: Chinese Teacher lock.`);
             if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return fireToast(`Rule Violation: English Teacher lock.`);
@@ -950,6 +978,152 @@
             matrixDownloadAnchor.setAttribute("download", `master_faculty_invigilation_timeline_matrix.csv`);
             document.body.appendChild(matrixDownloadAnchor); matrixDownloadAnchor.click(); matrixDownloadAnchor.remove();
             fireToast("Master grid timeline matrix generated! ✓");
+        }
+
+        // --- NEW EXPORT ENGINE: A4 LANDSCAPE CONFINED WORD DOCX BUILDER ---
+        function downloadLandscapeWordDocument() {
+            if (sessionsData.length === 0) return alert("Please parse database entries before generating Word print documents.");
+            
+            const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, PageOrientation, PageBreak, AlignmentType, HeightRule } = docx;
+
+            // 1. Map out forms expanded sequences array targets
+            const distinctFormsFound = new Set();
+            sessionsData.forEach(s => {
+                if (s.form) {
+                    const cleanF = String(s.form).trim();
+                    if (cleanF === "J") { distinctFormsFound.add("1"); distinctFormsFound.add("2"); }
+                    else if (cleanF === "S") { distinctFormsFound.add("4"); distinctFormsFound.add("5"); }
+                    else { distinctFormsFound.add(cleanF); }
+                }
+            });
+            const sortedFormsChronologicalList = [...distinctFormsFound].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+
+            const outputChildrenNodes = [];
+
+            // 2. Iterate form by form to compile separate sections
+            sortedFormsChronologicalList.forEach((formLevel, fIdx) => {
+                if (fIdx > 0) {
+                    outputChildrenNodes.push(new Paragraph({ children: [new PageBreak()] }));
+                }
+
+                // Append the strict required descriptive header block text
+                outputChildrenNodes.push(new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: `Exam invigilation timetable for S${formLevel}`,
+                            bold: true,
+                            size: 32, // 16pt font size layout geometry text
+                            color: "0f172a"
+                        })
+                    ],
+                    spacing: { before: 200, after: 300 }
+                }));
+
+                // Gather and filter targeted records chronologically matching this form grade bounds
+                const formMatchingSessions = sessionsData.filter(s => {
+                    const sf = String(s.form).trim();
+                    if (sf === formLevel) return true;
+                    if (sf === "J" && (formLevel === "1" || formLevel === "2")) return true;
+                    if (sf === "S" && (formLevel === "4" || formLevel === "5")) return true;
+                    return false;
+                });
+
+                const orderedTimelineList = sortSessionsChronologically([...formMatchingSessions]);
+
+                // Create corporate white-on-slate column header cell parameters
+                const cellBorders = {
+                    top: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
+                    bottom: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
+                    left: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
+                    right: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" }
+                };
+
+                const createHeaderCell = (txt, pctWidth) => new TableCell({
+                    children: [new Paragraph({ children: [new TextRun({ text: txt, bold: true, color: "ffffff", size: 18 })], alignment: AlignmentType.CENTER })],
+                    width: { size: pctWidth, type: WidthType.PERCENTAGE },
+                    shading: { fill: "0f172a" },
+                    borders: cellBorders
+                });
+
+                const tableHeaderRow = new TableRow({
+                    children: [
+                        createHeaderCell("Session", 7),
+                        createHeaderCell("Date/Blk", 9),
+                        createHeaderCell("Form", 5),
+                        createHeaderCell("Subject Title", 16),
+                        createHeaderCell("Venue Location", 14),
+                        createHeaderCell("Exam Time", 13),
+                        createHeaderCell("Required Post", 13),
+                        createHeaderCell("Time/Weight", 10),
+                        createHeaderCell("Assigned Staff", 13)
+                    ],
+                    height: { value: 400, rule: HeightRule.ATLEAST }
+                });
+
+                const tableRowsCollection = [tableHeaderRow];
+
+                // Append matching tabular records lines vertically
+                orderedTimelineList.forEach(session => {
+                    session.posts.forEach((post, pIdx) => {
+                        const createDataCell = (txt, pctWidth, isBold = false) => new TableCell({
+                            children: [new Paragraph({ children: [new TextRun({ text: txt, bold: isBold, size: 17 })] })],
+                            width: { size: pctWidth, type: WidthType.PERCENTAGE },
+                            borders: cellBorders,
+                            shading: (session.constraintRule && session.constraintRule !== "NONE") ? { fill: "f0fdf4" } : undefined
+                        });
+
+                        const rowChildrenNodes = [];
+                        
+                        // Merge multi-row spanned structural indicators safely manually row-by-row
+                        if (pIdx === 0) {
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.id, bold: true, size: 17 })] })], rowspan: session.posts.length, width: { size: 7, type: WidthType.PERCENTAGE }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.dateString, size: 17 })] })], rowspan: session.posts.length, width: { size: 9, type: WidthType.PERCENTAGE }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.form, size: 17 })], alignment: AlignmentType.CENTER })], rowspan: session.posts.length, width: { size: 5, type: WidthType.PERCENTAGE }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.subject, bold: true, size: 17 })] })], rowspan: session.posts.length, width: { size: 16, type: WidthType.PERCENTAGE }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.venue, size: 17 })] })], rowspan: session.posts.length, width: { size: 14, type: WidthType.PERCENTAGE }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.timeWindow, size: 17 })] })], rowspan: session.posts.length, width: { size: 13, type: WidthType.PERCENTAGE }, borders: cellBorders }));
+                        }
+
+                        rowChildrenNodes.push(createDataCell(post.role, 13, true));
+                        rowChildrenNodes.push(createDataCell(`${post.time} (${post.weight}h)`, 10));
+                        rowChildrenNodes.push(createDataCell(post.staff ? `👤 ${post.staff}` : "UNASSIGNED", 13, true));
+
+                        tableRowsCollection.push(new TableRow({ children: rowChildrenNodes, height: { value: 320, rule: HeightRule.ATLEAST } }));
+                    });
+                });
+
+                outputChildrenNodes.push(new Table({ rows: tableRowsCollection, width: { size: 100, type: WidthType.PERCENTAGE } }));
+            });
+
+            // 3. Package layout structure inside narrow margins landscape properties template container
+            const doc = new Document({
+                sections: [{
+                    properties: {
+                        page: {
+                            size: { width: docx.utils.convertInchesToTwip(11.69), height: docx.utils.convertInchesToTwip(8.27) }, // A4 Dimensions
+                            orientation: PageOrientation.LANDSCAPE,
+                            margins: {
+                                top: docx.utils.convertInchesToTwip(0.5),    // STRICT 0.5 Inch Narrow Margins
+                                bottom: docx.utils.convertInchesToTwip(0.5),
+                                left: docx.utils.convertInchesToTwip(0.5),
+                                right: docx.utils.convertInchesToTwip(0.5)
+                            }
+                        }
+                    },
+                    children: outputChildrenNodes
+                }]
+            });
+
+            // 4. Fire download compiler link trigger stream sequences
+            Packer.toBlob(doc).then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `official_school_exam_invigilation_timetable.docx`;
+                document.body.appendChild(a); a.click(); a.remove();
+                window.URL.revokeObjectURL(url);
+                fireToast("Word document generated under narrow landscape dimensions! ✓");
+            });
         }
 
         function downloadReport(reportType) {
