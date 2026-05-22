@@ -226,7 +226,7 @@
 
     <script>
         let staffRoster = {};
-        let staffOrderSequence = []; // NEW GLOBAL TRACKER Array to retain custom user sequence
+        let staffOrderSequence = []; // Holds user custom worksheet sequencing indices
         let sessionsData = [];
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
@@ -284,7 +284,6 @@
             return XLSX.utils.sheet_to_json(sheet, { defval: "" });
         }
 
-        // --- UPDATED PIPELINE: CAPTURE ORIGINAL WORKBOOK ROW SEQUENCES ---
         function buildStaffRosterMemory(rows) {
             staffRoster = {};
             staffOrderSequence = []; 
@@ -303,7 +302,7 @@
                     unavailableBlocks: [],
                     rawAvailabilityRow: row 
                 };
-                staffOrderSequence.push(sName); // Store custom sheet position order
+                staffOrderSequence.push(sName); 
             });
         }
 
@@ -370,6 +369,14 @@
             return rulesMap;
         }
 
+        function getBlockSegment(timeStr) {
+            const hour = parseInt(timeStr.split(":")[0], 10);
+            if (hour < 10) return "B1";
+            if (hour < 13) return "B2";
+            return "B3";
+        }
+
+        // --- SYNTAX RECOLLECTION: STANDARD NATIVE SCOPED CONTAINER ---
         function createPostObject(role, key, time, weight, sBound, eBound) {
             return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
         }
@@ -535,6 +542,16 @@
             });
         }
 
+        function calculateDurationFromStrings(startStr, endStr) {
+            const startParts = startStr.split(":");
+            const endParts = endStr.split(":");
+            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+            let diffMins = endMins - startMins;
+            if (diffMins < 0) diffMins += 24 * 60;
+            return parseFloat((diffMins / 60).toFixed(2));
+        }
+
         function cleanShorthandString(val) {
             let str = String(val === undefined || val === null ? "" : val).trim();
             if (/^\d{3,4}/.test(str)) {
@@ -668,9 +685,15 @@
             drawGridCanvas();
         }
 
+        // --- UPGRADED CONTEXT RECOVERY: INTEGRATE STRUCTURAL MATRIX SEQUENCE ---
         function exportWorkspaceJSON() {
-            if (sessionsData.length === 0) return alert("Workspace memory clear.");
-            const backupPackage = { staffRoster: staffRoster, sessionsData: sessionsData, savedAt: new Date().toISOString() };
+            if (sessionsData.length === 0) return alert("Workspace database data currently unpopulated.");
+            const backupPackage = { 
+                staffRoster: staffRoster, 
+                staffOrderSequence: staffOrderSequence, // Captured sequence embedded securely inside backup package
+                sessionsData: sessionsData, 
+                savedAt: new Date().toISOString() 
+            };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPackage));
             const dlAnchor = document.createElement('a');
             dlAnchor.setAttribute("href", dataStr);
@@ -684,10 +707,16 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid blueprints.");
-                    staffRoster = importedData.staffRoster; sessionsData = importedData.sessionsData;
-                    populateFilterDropdownOptions(); refreshAppPipeline();
-                    fireToast("Progress backup recovery loaded! ✓");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid schema tracking file dimensions.");
+                    
+                    staffRoster = importedData.staffRoster; 
+                    sessionsData = importedData.sessionsData;
+                    // Fallback to dictionary enumeration if restoring an outdated legacy structure package
+                    staffOrderSequence = importedData.staffOrderSequence || Object.keys(staffRoster);
+                    
+                    populateFilterDropdownOptions(); 
+                    refreshAppPipeline();
+                    fireToast("Interactive board state restored perfectly from JSON backup! ✓");
                 } catch (err) { alert("File parsing error:\n" + err.message); }
             };
             reader.readAsText(file); event.target.value = '';
@@ -771,7 +800,6 @@
             });
         }
 
-        // --- UPDATED VIEW RENDERER: DRAG DECK MIRRORS USER ROSTER SEQUENCE ---
         function drawRosterSidebar() {
             const container = document.getElementById("roster-box"); container.innerHTML = "";
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
@@ -788,7 +816,6 @@
                 }
             }
 
-            // Loop strictly utilizing custom sheet sequence rows order
             staffOrderSequence.forEach((name) => {
                 const data = staffRoster[name];
                 if (!data) return;
@@ -925,7 +952,6 @@
 
         document.getElementById("variance-tolerance").addEventListener("change", () => { if(sessionsData.length > 0) refreshAppPipeline(); });
 
-        // --- UPDATED EXPORT LAYER: EXPORTS RETAIN CUSTOM WORKBOOK SEQUENCE ---
         function downloadMasterGridReport() {
             if (sessionsData.length === 0) return alert("No database loaded.");
             const dayTrackerSet = new Set(); sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
@@ -934,7 +960,6 @@
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + "\n";
 
-            // Enforced original sheet entry sequence limits
             const sortedStaffNamesList = [...staffOrderSequence];
             sortedStaffNamesList.forEach((teacherName, index) => {
                 const tData = staffRoster[teacherName]; const cleanRowIndex = index + 1;
@@ -964,7 +989,6 @@
             fireToast("Master grid timeline matrix generated! ✓");
         }
 
-        // --- PRODUCTION EXPORT ENGINE: BARE TWIP PIXEL SECTIONS ---
         function downloadLandscapeWordDocument() {
             if (sessionsData.length === 0) return alert("Please parse database entries before generating Word print documents.");
             
@@ -1099,7 +1123,6 @@
             });
         }
 
-        // --- UPDATED EXPORT LAYER: TEACHER LIST EXPORTS PRESERVE USER ROSTER SEQUENCE ---
         function downloadReport(reportType) {
             if (sessionsData.length === 0) return alert("No active calendar records available.");
             let csv = "data:text/csv;charset=utf-8,";
@@ -1116,7 +1139,6 @@
             } else {
                 csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
                 
-                // Read from user-defined roster row indices exclusively
                 staffOrderSequence.forEach(tName => {
                     const teacherDuties = [];
                     sessionsData.forEach(s => { s.posts.forEach(p => { if (p.staff === tName) teacherDuties.push({ session: s, post: p }); }); });
