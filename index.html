@@ -79,7 +79,12 @@
         .clear-btn { color: #94a3b8; background: none; border: none; font-size: 14px; cursor: pointer; font-weight: bold; padding: 0 4px; }
         .clear-btn:hover { color: #ef4444; }
         .pin-tag { font-size: 8px; background-color: #e2e8f0; color: #64748b; padding: 1px 4px; border-radius: 4px; }
-
+        /* Update these lines in your CSS */
+        /* Tightened Subject(12%) & Venue(12%), Widened Time/Weight(14%) */
+        .col-subject { width: 12%; } 
+        .col-venue { width: 12%; } 
+        .col-time { width: 14%; }
+        .col-weight { width: 14%; }
         /* Modal Overlay */
         .modal { position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
         .modal.hidden { display: none; }
@@ -209,11 +214,11 @@
                                 <th style="width: 6%; padding-left: 16px;">Session</th>
                                 <th style="width: 8%;">Date/Blk</th>
                                 <th style="width: 4%; text-align: center;">Form</th>
-                                <th style="width: 16%;">Subject Title</th>
+                                <th style="width: 12%;">Subject Title</th>
                                 <th style="width: 14%;">Venue Location</th>
                                 <th style="width: 13%;">Exam Time</th>
                                 <th style="width: 13%;">Required Post</th>
-                                <th style="width: 10%;">Time/Weight</th>
+                                <th style="width: 14%;">Time/Weight</th>
                                 <th style="width: 16%; padding-right: 16px;">Assigned Staff Target Placement</th>
                             </tr>
                         </thead>
@@ -1147,14 +1152,16 @@
                 jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
             };
 
-            html2pdf().set(captureConfigurationMap).from(printVaultNode).toContainer().toCanvas().toPdf().save().then(() => {
-                window.fireToast("Landscape document compiled into high-density PDF successfully! ✓");
-            }).catch(err => {
-                console.error("PDF Engine Crash Logs:", err);
-                alert("Print engine failure: " + err.message);
-            });
+        setTimeout(() => {
+                html2pdf().set(captureConfigurationMap).from(printVaultNode).save().then(() => {
+                    window.fireToast("Landscape document compiled successfully! ✓");
+                }).catch(err => {
+                    console.error("PDF Engine Crash Logs:", err);
+                    alert("Print engine failure: " + err.message);
+                });
+            }, 500);
         };
-
+        
         window.downloadReport = function(reportType) {
             if (window.sessionsData.length === 0) return alert("No active calendar records available.");
             let csv = "data:text/csv;charset=utf-8,";
