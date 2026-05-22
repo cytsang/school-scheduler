@@ -273,6 +273,8 @@
                 if (!sId) return;
 
                 const rawDateInput = cleanShorthandString(row["Date"]);
+                if (!rawDateInput) return; // Clean skip for safety padding rows
+
                 const dateString = parseMMDD(rawDateInput);
                 const startTimeStr = parseHHMM(row["Start Time"]);
                 const endTimeStr = parseHHMM(row["End Time"]);
@@ -383,26 +385,44 @@
             });
         }
 
+        // --- FIXED PIPELINE: ROBUST PRE-ASSIGNMENT PARSER WITH TIME INHERITANCE ---
         function linkPreAssignments(rows) {
             rows.forEach(row => {
                 const targetSid = String(row["Session_ID"] || "").trim();
-                const targetPostRole = String(row["Post"] || "").trim();
+                const rawPostInput = String(row["Post"] || "").toUpperCase().trim();
                 const assignedStaffName = String(row["StaffName"] || "").trim();
-                if (!targetSid || !targetPostRole || !assignedStaffName) return;
-
-                const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
-                const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
+                
+                // Clear Guard: Ignore trailing empty template padding lines completely
+                if (!targetSid || !rawPostInput || !assignedStaffName) return;
 
                 sessionsData.forEach(s => {
                     if (s.baseSessionId === targetSid || s.id === targetSid) {
-                        const matchPost = s.posts.find(p => p.role.toLowerCase() === targetPostRole.toLowerCase());
-                        if (matchPost) {
-                            matchPost.staff = assignedStaffName;
-                            matchPost.pinned = true;
-                            if (customStart && customEnd) {
-                                matchPost.time = customStart + " - " + customEnd;
+                        s.posts.forEach(p => {
+                            let matchFound = false;
+                            
+                            // Normalise mapping translations dynamically
+                            if (rawPostInput === "C" || rawPostInput.startsWith("CHIEF")) {
+                                if (p.role.startsWith("Chief")) matchFound = true;
+                            } else if (rawPostInput === "I" || rawPostInput.startsWith("INVIG")) {
+                                if (p.role.startsWith("Invigilator")) matchFound = true;
+                            } else if (rawPostInput === "B" || rawPostInput.startsWith("BEGIN")) {
+                                if (p.role.startsWith("Beginner")) matchFound = true;
+                            } else if (rawPostInput === "E" || rawPostInput.startsWith("END")) {
+                                if (p.role.startsWith("Ender")) matchFound = true;
                             }
-                        }
+
+                            if (matchFound) {
+                                p.staff = assignedStaffName;
+                                p.pinned = true; // Safety Lock: Protects post from scheduler clear sweeps
+
+                                // Read timing overrides if intentionally populated
+                                const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
+                                const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
+                                if (customStart && customEnd) {
+                                    p.time = customStart + " - " + customEnd;
+                                }
+                            }
+                        });
                     }
                 });
             });
@@ -451,7 +471,7 @@
             return { role: role, key: key, time: time, weight: weight, staff: null, pinned: false };
         }
 
-        get_block: function getBlockSegment(timeStr) {
+        function getBlockSegment(timeStr) {
             const hour = parseInt(timeStr.split(":")[0], 10);
             if (hour < 10) return "B1";
             if (hour < 13) return "B2";
@@ -503,6 +523,7 @@
             });
         }
 
+        // --- FIXED PIPELINE: DYNAMIC DROPDOWN WITH COMBINED FORM INTERCEPTORS ---
         function populateFilterDropdownOptions() {
             const daySelect = document.getElementById("filter-day");
             const formSelect = document.getElementById("filter-form");
@@ -515,7 +536,20 @@
             
             sessionsData.forEach(s => {
                 if (s.dateString) uniqueDaysSet.add(s.dateString);
-                if (s.form && s.form !== "J" && s.form !== "S") uniqueFormsSet.add(s.form);
+                
+                // Read row types to auto-inject clean numerical form targets
+                if (s.form) {
+                    const fClean = String(s.form).trim();
+                    if (fClean === "J") {
+                        uniqueFormsSet.add("1");
+                        uniqueFormsSet.add("2");
+                    } else if (fClean === "S") {
+                        uniqueFormsSet.add("4");
+                        uniqueFormsSet.add("5");
+                    } else {
+                        uniqueFormsSet.add(fClean);
+                    }
+                }
             });
             
             const sortedDays = [...uniqueDaysSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
@@ -523,6 +557,7 @@
                 daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
             });
             
+            // Render menu without loose placeholders (e.g. J and S are hidden, only 1,2,3,4,5 are generated)
             const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
             sortedForms.forEach(form => {
                 formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
@@ -623,7 +658,7 @@
                 }
             }
             if (!success) { alert(`⚠️ Hard Variance Target Unreached:\nCould not complete layout under your selected ${allowedVarianceWindow.toFixed(2)}h variance ceiling limit rule.\n(Best execution spread: ${finalVariance.toFixed(2)}h).`); }
-            else { fireToast(`Auto-scheduling completed within variance ceiling parameters limit! ✓`); }
+            else { fireToast(`Auto-scheduling completed within variance parameters limit! ✓`); }
             refreshAppPipeline();
         }
 
@@ -673,19 +708,27 @@
             });
         }
 
-        // --- FIXED GRID CELL WIDTH STABILIZER ---
+        // --- FIXED CROSS-MUTATION FILTER ROW VALIDATOR ---
         function drawGridCanvas() {
             const tbody = document.getElementById("table-canvas-body"); tbody.innerHTML = "";
             if (sessionsData.length === 0) return;
 
             const filteredSessions = sessionsData.filter(session => {
                 if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
+                
+                // Intercept and resolve J/S multi-form selections dynamically
                 if (activeFormFilter !== "ALL") {
-                    const sessionForm = String(session.form).trim(); const selectedForm = String(activeFormFilter).trim();
+                    const sessionForm = String(session.form).trim();
+                    const selectedForm = String(activeFormFilter).trim();
+                    
                     if (sessionForm !== selectedForm) {
-                        if (selectedForm === "1" || selectedForm === "2") { if (sessionForm !== "J") return false; }
-                        else if (selectedForm === "4" || selectedForm === "5") { if (sessionForm !== "S") return false; }
-                        else { return false; }
+                        if (selectedForm === "1" || selectedForm === "2") {
+                            if (sessionForm !== "J") return false;
+                        } else if (selectedForm === "4" || selectedForm === "5") {
+                            if (sessionForm !== "S") return false;
+                        } else {
+                            return false;
+                        }
                     }
                 }
                 return true;
@@ -716,7 +759,6 @@
                           durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Cross-check mismatch! Check Excel Master tab values row alignment.">⚠️ ${session.duration.toFixed(2)}h</span>`;
                         }
 
-                        // FIXED METRIC: Proportions perfectly mirror the updated 9-column headers layout configuration
                         structuralCellsBundleHTML = `
                             <td class="w-[6%] pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white truncate" rowspan="${totalPostRowsCount}">${session.id}</td>
                             <td class="w-[8%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.dayBlock.split("(")[1].substring(0,2)}</td>
