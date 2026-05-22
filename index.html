@@ -179,21 +179,6 @@
                         <li><strong class="text-slate-800 font-semibold">Chinese / English / Maths Columns:</strong> Enter <span class="bg-slate-100 font-mono font-bold px-1 rounded text-blue-700">Y</span> to register subject specializations.</li>
                     </ul>
                 </div>
-
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📅 Sheet 2: Availability</h3>
-                    <p class="mb-2 text-slate-500">Configures leaves using exact structural math intersection envelopes:</p>
-                    <ul class="list-disc pl-5 space-y-2">
-                        <li><strong class="text-slate-800 font-semibold">Date Headers:</strong> Enter as a 4-digit short text string (e.g., <span class="font-mono bg-slate-100 font-bold px-1 rounded">0608</span> or <span class="font-mono bg-slate-100 font-bold px-1 rounded">0612</span>).</li>
-                        <li><strong class="text-slate-800 font-semibold">Cell Value Block Tokens:</strong>
-                            <ul class="list-circle pl-5 mt-1 space-y-1">
-                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">A</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">08:00 - 10:30</span>.</li>
-                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">B</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">10:30 - 13:00</span>.</li>
-                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">C</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">13:00 - 16:00</span>.</li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
             </div>
             
             <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex justify-end shrink-0">
@@ -209,13 +194,14 @@
     </div>
 
     <script>
-        // FORCED ROOT LEVEL EXPOSURE: Binds variables instantly to window context, rendering load ordering bugs impossible.
+        // GLOBAL STATE VARIABLE STORAGE HOOKS
         window.staffRoster = {};
         window.staffOrderSequence = [];
         window.sessionsData = [];
         window.activeDayFilter = "ALL";
         window.activeFormFilter = "ALL";
 
+        // GLOBAL UTILITIES HUB (COMPLETELY BOUND TO WINDOW)
         window.calculateDurationFromStrings = function(startStr, endStr) {
             const startParts = startStr.split(":");
             const endParts = endStr.split(":");
@@ -304,6 +290,15 @@
             });
         };
 
+        window.toggleDocumentationModal = function(shouldOpen) {
+            const el = document.getElementById("documentation-modal");
+            if (el) {
+                if (shouldOpen) el.classList.remove("hidden");
+                else el.classList.add("hidden");
+            }
+        };
+
+        // EXCEL SHEET READER DECK ENGINE
         window.processLocalExcelWorkbook = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -656,7 +651,7 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid parameters template files.");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid schema template backup mapping parameters.");
                     
                     window.staffRoster = importedData.staffRoster; 
                     window.sessionsData = importedData.sessionsData;
@@ -668,6 +663,22 @@
                 } catch (err) { alert("File parsing error:\n" + err.message); }
             };
             reader.readAsText(file); event.target.value = '';
+        };
+
+        // GLOBAL OPERATIONAL CREDIT CALCULATOR (FIXED PERSISTENT ROUTING OVERHEAD)
+        window.computeOperationalHours = function() {
+            Object.keys(window.staffRoster).forEach(name => {
+                window.staffRoster[name].totalHours = window.staffRoster[name].extraHours; window.staffRoster[name].dailyDuties = {};
+            });
+            window.sessionsData.forEach(session => {
+                session.posts.forEach(post => {
+                    if (post.staff && window.staffRoster[post.staff]) {
+                        window.staffRoster[post.staff].totalHours += post.weight;
+                        if (!window.staffRoster[post.staff].dailyDuties[session.dateString]) window.staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                        window.staffRoster[post.staff].dailyDuties[session.dateString]++;
+                    }
+                });
+            });
         };
 
         window.runAutoScheduler = function() {
@@ -687,7 +698,7 @@
                 for (let session of chronologicalSessions) {
                     for (let post of session.posts) {
                         if (post.staff) continue;
-                        computeOperationalHours();
+                        window.computeOperationalHours(); // Dynamic call routed cleanly down window definitions pipeline
                         
                         let basePool = Object.keys(window.staffRoster).filter(tName => {
                             const t = window.staffRoster[tName];
@@ -722,7 +733,7 @@
                     if (brokenSlotDetected) break;
                 }
                 if (!brokenSlotDetected) {
-                    computeOperationalHours();
+                    window.computeOperationalHours();
                     const balanceHours = Object.values(window.staffRoster).map(t => t.totalHours);
                     finalVariance = Math.max(...balanceHours) - Math.min(...balanceHours);
                     if (finalVariance <= (allowedVarianceWindow + 0.001)) { success = true; break; }
@@ -732,21 +743,6 @@
             else { window.fireToast("Auto-scheduling completed within variance parameters limit! ✓"); }
             window.refreshAppPipeline();
         };
-
-        function computeOperationalHours() {
-            Object.keys(window.staffRoster).forEach(name => {
-                window.staffRoster[name].totalHours = window.staffRoster[name].extraHours; window.staffRoster[name].dailyDuties = {};
-            });
-            window.sessionsData.forEach(session => {
-                session.posts.forEach(post => {
-                    if (post.staff && window.staffRoster[post.staff]) {
-                        window.staffRoster[post.staff].totalHours += post.weight;
-                        if (!window.staffRoster[post.staff].dailyDuties[session.dateString]) window.staffRoster[post.staff].dailyDuties[session.dateString] = 0;
-                        window.staffRoster[post.staff].dailyDuties[session.dateString]++;
-                    }
-                });
-            });
-        }
 
         window.drawRosterSidebar = function() {
             const container = document.getElementById("roster-box"); 
@@ -906,7 +902,7 @@
             setTimeout(() => { el.className = el.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0"); }, 4000);
         };
 
-        window.refreshAppPipeline = function() { computeOperationalHours(); window.drawRosterSidebar(); window.drawGridCanvas(); };
+        window.refreshAppPipeline = function() { window.computeOperationalHours(); window.drawRosterSidebar(); window.drawGridCanvas(); };
 
         window.downloadMasterGridReport = function() {
             if (window.sessionsData.length === 0) return alert("No active calendar records loaded.");
@@ -949,6 +945,7 @@
             window.fireToast("Master grid matrix layout compiled with special duty audit rules! ✓");
         };
 
+        // --- 100% PURE INLINE HEX STYLE GENERATOR ENGINE FOR PDF (ZERO TAILWIND OKLCH PENETRATION) ---
         window.downloadLandscapePDFDocument = function() {
             if (window.sessionsData.length === 0) return alert("Please parse dataset entries before running vector layout prints.");
             
@@ -972,6 +969,7 @@
                 if (fIdx > 0) multiPageBreakWrapper.className = "pdf-page-break";
                 multiPageBreakWrapper.style.paddingTop = "20px";
 
+                // REFACTOR: Forced pure hardware hex strings down subtitles text nodes
                 multiPageBreakWrapper.innerHTML = `
                     <h2 style="font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 12px; font-family: Arial, sans-serif;">
                         Exam invigilation timetable for S${formLevel}
@@ -998,15 +996,15 @@
                 tableElement.innerHTML = `
                     <thead>
                         <tr style="background-color: #0f172a; color: #ffffff; text-transform: uppercase; height: 30px;">
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 8%;">Session</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 10%;">Date/Blk</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 5%;">Form</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 18%;">Subject Title</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 15%;">Venue Location</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 13%;">Exam Time</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 13%;">Required Post</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 8%;">Weight</th>
-                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 12%;">Assigned Staff</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 8%; color: #ffffff;">Session</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 10%; color: #ffffff;">Date/Blk</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 5%; color: #ffffff;">Form</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 18%; color: #ffffff;">Subject Title</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 15%; color: #ffffff;">Venue Location</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 13%; color: #ffffff;">Exam Time</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 13%; color: #ffffff;">Required Post</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 8%; color: #ffffff;">Weight</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 12%; color: #ffffff;">Assigned Staff</th>
                         </tr>
                     </thead>
                 `;
@@ -1104,7 +1102,7 @@
             document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
         };
 
-        // Enforce DOM configuration check safely
+        // RUN DIRECT CHECK FOR SAFETY INITIALIZATION
         document.addEventListener("DOMContentLoaded", () => {
             if (window.sessionsData.length > 0) window.refreshAppPipeline();
             const tol = document.getElementById("variance-tolerance");
