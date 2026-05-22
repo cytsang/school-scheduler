@@ -302,12 +302,11 @@
                     isDiscipline: isDisc,
                     extraHours: isDisc ? 1.0 : 0.0,
                     unavailableBlocks: [],
-                    rawAvailabilityRow: row // Retained for deep block lookup mechanics
+                    rawAvailabilityRow: row 
                 };
             });
         }
 
-        // --- FIXED CRITICAL TIME-INTERVAL INTERSECTION OVERLAP PARSER ENGINE ---
         function parseAvailabilityConstraints(rows) {
             if (rows.length === 0) return;
             const headers = Object.keys(rows[0]);
@@ -322,7 +321,6 @@
                     const tokens = String(row[header] || "").toUpperCase().trim();
 
                     if (tokens !== "") {
-                        // Store the exact literal lockout token strings indexed by date string keys
                         if (!staffRoster[sName].dailyLockoutTokens) staffRoster[sName].dailyLockoutTokens = {};
                         staffRoster[sName].dailyLockoutTokens[rawDateKey] = tokens;
                     }
@@ -337,7 +335,6 @@
             const activeDayTokens = teacher.dailyLockoutTokens[dateStringKey];
             if (!activeDayTokens) return false; 
             
-            // Mathematical Conversion coordinates helper closure
             const toMins = (timeStr) => {
                 const p = timeStr.split(":");
                 return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
@@ -346,16 +343,14 @@
             const exStart = toMins(sessionStartStr);
             const exEnd = toMins(sessionEndStr);
 
-            // Establish strict time block bounds
             const blocks = [];
             if (activeDayTokens.includes("A")) blocks.push({ s: toMins("08:00"), e: toMins("10:30") });
             if (activeDayTokens.includes("B")) blocks.push({ s: toMins("10:30"), e: toMins("13:00") });
             if (activeDayTokens.includes("C")) blocks.push({ s: toMins("13:00"), e: toMins("16:00") });
 
-            // Evaluate Interval Intersections Matrix: (Start1 < End2) AND (End1 > Start2)
             for (let b of blocks) {
                 if (exStart < b.e && exEnd > b.s) {
-                    return true; // Mathematical overlap detected!
+                    return true; 
                 }
             }
             return false;
@@ -373,6 +368,13 @@
                 rulesMap[targetType][targetValue] = condition;
             });
             return rulesMap;
+        }
+
+        function getBlockSegment(timeStr) {
+            const hour = parseInt(timeStr.split(":")[0], 10);
+            if (hour < 10) return "B1";
+            if (hour < 13) return "B2";
+            return "B3";
         }
 
         function processExamMasterTimeline(rows, rulesMap) {
@@ -421,7 +423,7 @@
                     const session = {
                         id: expandedSessionId,
                         baseSessionId: sId,
-                        rawDateKey: rawDateInput, // Preserved for deep loop evaluation checks
+                        rawDateKey: rawDateInput, 
                         dateString: dateString,
                         startTime: startTimeStr,
                         endTime: endTimeStr,
@@ -536,16 +538,6 @@
             });
         }
 
-        function calculateDurationFromStrings(startStr, endStr) {
-            const startParts = startStr.split(":");
-            const endParts = endStr.split(":");
-            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-            let diffMins = endMins - startMins;
-            if (diffMins < 0) diffMins += 24 * 60;
-            return parseFloat((diffMins / 60).toFixed(2));
-        }
-
         function cleanShorthandString(val) {
             let str = String(val === undefined || val === null ? "" : val).trim();
             if (/^\d{3,4}/.test(str)) {
@@ -575,7 +567,7 @@
             return str;
         }
 
-        function createPostObject(role, key, time, weight, sBound, eBound) {
+        convert_to_twips: function createPostObject(role, key, time, weight, sBound, eBound) {
             return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
         }
 
@@ -708,7 +700,6 @@
             reader.readAsText(file); event.target.value = '';
         }
 
-        // --- UPGRADED TWO-TIERED VARIANCE OPTIMIZATION BALANCING AUTO SCHEDULER ENGINE ---
         function runAutoScheduler() {
             if (sessionsData.length === 0) return alert("Please upload an Excel workbook before running allocation sweeps!");
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
@@ -728,17 +719,12 @@
                         if (post.staff) continue;
                         computeOperationalHours();
                         
-                        // Pass 1: Gather ALL mathematically compatible candidates
                         let basePool = Object.keys(staffRoster).filter(tName => {
                             const t = staffRoster[tName];
                             
-                            // Check rule 1: Enforce math intersection interval protection bounds
                             if (checkIsTeacherTimeConflicting(tName, session.rawDateKey, post.startBounds, post.endBounds)) return false;
-                            
-                            // Check rule 2: Single duty constraint per calendar date string boundary limit
                             if (t.dailyDuties && t.dailyDuties[session.dateString] >= 1) return false;
                             
-                            // Check rule 3: Subject flags verification checks
                             if (session.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return false;
                             if (session.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return false;
                             if (session.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return false;
@@ -747,13 +733,11 @@
 
                         if (basePool.length === 0) { brokenSlotDetected = true; break; }
 
-                        // TWO-TIER CRITERIA SELECTION: Filter for teachers who are 100% free for the full day
                         let pristineTierPool = basePool.filter(tName => {
                             const tokens = staffRoster[tName].dailyLockoutTokens;
                             return !tokens || !tokens[session.rawDateKey]; 
                         });
 
-                        // Fallback implementation logic cascade
                         let targetSelectionPool = pristineTierPool.length > 0 ? pristineTierPool : basePool;
 
                         targetSelectionPool.sort((a, b) => {
@@ -980,13 +964,12 @@
             fireToast("Master grid timeline matrix generated! ✓");
         }
 
-        // --- NEW EXPORT ENGINE: A4 LANDSCAPE CONFINED WORD DOCX BUILDER ---
+        // --- PRODUCTION PATCHED EXPORT ENGINE: BARE PIXEL BINDINGS ---
         function downloadLandscapeWordDocument() {
             if (sessionsData.length === 0) return alert("Please parse database entries before generating Word print documents.");
             
             const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, PageOrientation, PageBreak, AlignmentType, HeightRule } = docx;
 
-            // 1. Map out forms expanded sequences array targets
             const distinctFormsFound = new Set();
             sessionsData.forEach(s => {
                 if (s.form) {
@@ -1000,26 +983,30 @@
 
             const outputChildrenNodes = [];
 
-            // 2. Iterate form by form to compile separate sections
+            const cellBorders = {
+                top: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
+                bottom: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
+                left: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
+                right: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" }
+            };
+
             sortedFormsChronologicalList.forEach((formLevel, fIdx) => {
                 if (fIdx > 0) {
                     outputChildrenNodes.push(new Paragraph({ children: [new PageBreak()] }));
                 }
 
-                // Append the strict required descriptive header block text
                 outputChildrenNodes.push(new Paragraph({
                     children: [
                         new TextRun({
                             text: `Exam invigilation timetable for S${formLevel}`,
                             bold: true,
-                            size: 32, // 16pt font size layout geometry text
+                            size: 32, 
                             color: "0f172a"
                         })
                     ],
                     spacing: { before: 200, after: 300 }
                 }));
 
-                // Gather and filter targeted records chronologically matching this form grade bounds
                 const formMatchingSessions = sessionsData.filter(s => {
                     const sf = String(s.form).trim();
                     if (sf === formLevel) return true;
@@ -1030,91 +1017,76 @@
 
                 const orderedTimelineList = sortSessionsChronologically([...formMatchingSessions]);
 
-                // Create corporate white-on-slate column header cell parameters
-                const cellBorders = {
-                    top: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
-                    bottom: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
-                    left: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
-                    right: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" }
-                };
-
-                const createHeaderCell = (txt, pctWidth) => new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: txt, bold: true, color: "ffffff", size: 18 })], alignment: AlignmentType.CENTER })],
-                    width: { size: pctWidth, type: WidthType.PERCENTAGE },
+                const createHeaderCell = (txt, dxaWidth) => new TableCell({
+                    children: [new Paragraph({ children: [new TextRun({ text: txt, bold: true, color: "ffffff", size: 17 })], alignment: AlignmentType.CENTER })],
+                    width: { size: dxaWidth, type: WidthType.DXA },
                     shading: { fill: "0f172a" },
                     borders: cellBorders
                 });
 
+                // Confines total printable table width exactly onto A4 narrow parameters canvas bounds
                 const tableHeaderRow = new TableRow({
                     children: [
-                        createHeaderCell("Session", 7),
-                        createHeaderCell("Date/Blk", 9),
-                        createHeaderCell("Form", 5),
-                        createHeaderCell("Subject Title", 16),
-                        createHeaderCell("Venue Location", 14),
-                        createHeaderCell("Exam Time", 13),
-                        createHeaderCell("Required Post", 13),
-                        createHeaderCell("Time/Weight", 10),
-                        createHeaderCell("Assigned Staff", 13)
+                        createHeaderCell("Session", 900),
+                        createHeaderCell("Date/Blk", 1200),
+                        createHeaderCell("Form", 600),
+                        createHeaderCell("Subject Title", 2500),
+                        createHeaderCell("Venue Location", 2100),
+                        createHeaderCell("Exam Time", 2000),
+                        createHeaderCell("Required Post", 2000),
+                        createHeaderCell("Time/Weight", 1500),
+                        createHeaderCell("Assigned Staff", 2594)
                     ],
                     height: { value: 400, rule: HeightRule.ATLEAST }
                 });
 
                 const tableRowsCollection = [tableHeaderRow];
 
-                // Append matching tabular records lines vertically
                 orderedTimelineList.forEach(session => {
                     session.posts.forEach((post, pIdx) => {
-                        const createDataCell = (txt, pctWidth, isBold = false) => new TableCell({
+                        const createDataCell = (txt, dxaWidth, isBold = false) => new TableCell({
                             children: [new Paragraph({ children: [new TextRun({ text: txt, bold: isBold, size: 17 })] })],
-                            width: { size: pctWidth, type: WidthType.PERCENTAGE },
+                            width: { size: dxaWidth, type: WidthType.DXA },
                             borders: cellBorders,
                             shading: (session.constraintRule && session.constraintRule !== "NONE") ? { fill: "f0fdf4" } : undefined
                         });
 
                         const rowChildrenNodes = [];
                         
-                        // Merge multi-row spanned structural indicators safely manually row-by-row
                         if (pIdx === 0) {
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.id, bold: true, size: 17 })] })], rowspan: session.posts.length, width: { size: 7, type: WidthType.PERCENTAGE }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.dateString, size: 17 })] })], rowspan: session.posts.length, width: { size: 9, type: WidthType.PERCENTAGE }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.form, size: 17 })], alignment: AlignmentType.CENTER })], rowspan: session.posts.length, width: { size: 5, type: WidthType.PERCENTAGE }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.subject, bold: true, size: 17 })] })], rowspan: session.posts.length, width: { size: 16, type: WidthType.PERCENTAGE }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.venue, size: 17 })] })], rowspan: session.posts.length, width: { size: 14, type: WidthType.PERCENTAGE }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.timeWindow, size: 17 })] })], rowspan: session.posts.length, width: { size: 13, type: WidthType.PERCENTAGE }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.id, bold: true, size: 17 })] })], rowSpan: session.posts.length, width: { size: 900, type: WidthType.DXA }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.dateString, size: 17 })] })], rowSpan: session.posts.length, width: { size: 1200, type: WidthType.DXA }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.form, size: 17 })], alignment: AlignmentType.CENTER })], rowSpan: session.posts.length, width: { size: 600, type: WidthType.DXA }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.subject, bold: true, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2500, type: WidthType.DXA }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.venue, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2100, type: WidthType.DXA }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.timeWindow, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2000, type: WidthType.DXA }, borders: cellBorders }));
                         }
 
-                        rowChildrenNodes.push(createDataCell(post.role, 13, true));
-                        rowChildrenNodes.push(createDataCell(`${post.time} (${post.weight}h)`, 10));
-                        rowChildrenNodes.push(createDataCell(post.staff ? `👤 ${post.staff}` : "UNASSIGNED", 13, true));
+                        rowChildrenNodes.push(createDataCell(post.role, 2000, true));
+                        rowChildrenNodes.push(createDataCell(`${post.time} (${post.weight}h)`, 1500));
+                        rowChildrenNodes.push(createDataCell(post.staff ? `👤 ${post.staff}` : "UNASSIGNED", 2594, true));
 
                         tableRowsCollection.push(new TableRow({ children: rowChildrenNodes, height: { value: 320, rule: HeightRule.ATLEAST } }));
                     });
                 });
 
-                outputChildrenNodes.push(new Table({ rows: tableRowsCollection, width: { size: 100, type: WidthType.PERCENTAGE } }));
+                outputChildrenNodes.push(new Table({ rows: tableRowsCollection, width: { size: 15394, type: WidthType.DXA } }));
             });
 
-            // 3. Package layout structure inside narrow margins landscape properties template container
+            // Absolute landscape structural canvas definitions mapping
             const doc = new Document({
                 sections: [{
                     properties: {
                         page: {
-                            size: { width: docx.utils.convertInchesToTwip(11.69), height: docx.utils.convertInchesToTwip(8.27) }, // A4 Dimensions
+                            size: { width: 16834, height: 11909 }, 
                             orientation: PageOrientation.LANDSCAPE,
-                            margins: {
-                                top: docx.utils.convertInchesToTwip(0.5),    // STRICT 0.5 Inch Narrow Margins
-                                bottom: docx.utils.convertInchesToTwip(0.5),
-                                left: docx.utils.convertInchesToTwip(0.5),
-                                right: docx.utils.convertInchesToTwip(0.5)
-                            }
+                            margins: { top: 720, bottom: 720, left: 720, right: 720 } // Narrow 0.5" Margins
                         }
                     },
                     children: outputChildrenNodes
                 }]
             });
 
-            // 4. Fire download compiler link trigger stream sequences
             Packer.toBlob(doc).then(blob => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
@@ -1123,6 +1095,9 @@
                 document.body.appendChild(a); a.click(); a.remove();
                 window.URL.revokeObjectURL(url);
                 fireToast("Word document generated under narrow landscape dimensions! ✓");
+            }).catch(err => {
+                console.error("DOCX Pack Error:", err);
+                alert("Error compiling Word Document layout: " + err.message);
             });
         }
 
