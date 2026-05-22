@@ -224,12 +224,24 @@
         </div>
     </div>
 
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
+        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Alert flag message text strings.</span>
+    </div>
+
     <script>
         let staffRoster = {};
-        let staffOrderSequence = []; // Holds user custom worksheet sequencing indices
+        let staffOrderSequence = []; 
         let sessionsData = [];
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
+
+        // Lifecycle Safety Guard - Enforces elements exist before trigger updates run
+        document.addEventListener("DOMContentLoaded", () => {
+            if (sessionsData.length > 0) refreshAppPipeline();
+            document.getElementById("variance-tolerance").addEventListener("change", () => { 
+                if(sessionsData.length > 0) refreshAppPipeline(); 
+            });
+        });
 
         function toggleDocumentationModal(shouldOpen) {
             const el = document.getElementById("documentation-modal");
@@ -237,12 +249,100 @@
             else el.classList.add("hidden");
         }
 
+        // --- GLOBALIZED LOGICAL MATHEMATICAL UTILITIES HUB ---
+        function calculateDurationFromStrings(startStr, endStr) {
+            const startParts = startStr.split(":");
+            const endParts = endStr.split(":");
+            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+            let diffMins = endMins - startMins;
+            if (diffMins < 0) diffMins += 24 * 60;
+            return parseFloat((diffMins / 60).toFixed(2));
+        }
+
+        function createPostObject(role, key, time, weight, sBound, eBound) {
+            return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
+        }
+
+        function addHoursToTime(timeStr, hoursToAdd) {
+            const parts = timeStr.split(":");
+            let hr = parseInt(parts[0], 10);
+            let min = parseInt(parts[1], 10);
+            let totalMins = hr * 60 + min + (hoursToAdd * 60);
+            let finalHr = Math.floor(totalMins / 60);
+            let finalMin = Math.round(totalMins % 60);
+            return (finalHr < 10 ? "0" + finalHr : finalHr) + ":" + (finalMin < 10 ? "0" + finalMin : finalMin);
+        }
+
+        function cleanShorthandString(val) {
+            let str = String(val === undefined || val === null ? "" : val).trim();
+            if (/^\d{3,4}/.test(str)) {
+                let numPart = str.match(/^\d+/)[0];
+                if (numPart.length === 3) numPart = "0" + numPart;
+                str = numPart + str.substring(numPart.length - (numPart.length === 4 ? 0 : 1));
+            }
+            return str;
+        }
+
+        function parseMMDD(val) {
+            let str = cleanShorthandString(val);
+            if (str.length >= 4) {
+                let month = parseInt(str.substring(0, 2), 10);
+                let day = parseInt(str.substring(2, 4), 10);
+                return day + "/" + month;
+            }
+            return str;
+        }
+
+        function parseHHMM(val) {
+            let str = String(val || "").trim();
+            if (str.length === 3) str = "0" + str;
+            if (str.length === 4) {
+                return str.substring(0, 2) + ":" + str.substring(2, 4);
+            }
+            return str;
+        }
+
+        function getDateSortWeight(dateString) {
+            if (!dateString) return 0;
+            const cleanStr = dateString.replace(/月|日/g, "/");
+            const parts = cleanStr.split("/");
+            let day = parseInt(parts[0], 10);
+            let month = parseInt(parts[1], 10);
+            if (isNaN(day) || !month) {
+                const rawNum = dateString.match(/\d+/);
+                if (rawNum && rawNum[0].length === 4) {
+                    month = parseInt(rawNum[0].substring(0, 2), 10);
+                    day = parseInt(rawNum[0].substring(2, 4), 10);
+                }
+            }
+            return (month * 100) + day;
+        }
+
+        function getTimeSortWeight(timeWindowString) {
+            if (!timeWindowString) return 0;
+            const baseStart = timeWindowString.split("-")[0].trim();
+            const parts = baseStart.split(":");
+            return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+        }
+
+        function sortSessionsChronologically(sessionsArray) {
+            return sessionsArray.sort((a, b) => {
+                const dWA = getDateSortWeight(a.dateString);
+                const dWB = getDateSortWeight(b.dateString);
+                if (dWA !== dWB) return dWA - dWB;
+                const tWA = getTimeSortWeight(a.timeWindow);
+                const tWB = getTimeSortWeight(b.timeWindow);
+                if (tWA !== tWB) return tWA - tWB;
+                return a.id.localeCompare(b.id, undefined, {numeric: true});
+            });
+        }
+
         function processLocalExcelWorkbook(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             document.getElementById("file-upload-label").innerText = `📂 Processing: ${file.name}...`;
-            
             document.getElementById("table-canvas-body").innerHTML = `
                 <tr><td colspan="9" class="text-center p-20 bg-white font-mono uppercase tracking-widest text-slate-400">
                     <span class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>
@@ -367,18 +467,6 @@
                 rulesMap[targetType][targetValue] = condition;
             });
             return rulesMap;
-        }
-
-        function getBlockSegment(timeStr) {
-            const hour = parseInt(timeStr.split(":")[0], 10);
-            if (hour < 10) return "B1";
-            if (hour < 13) return "B2";
-            return "B3";
-        }
-
-        // --- SYNTAX RECOLLECTION: STANDARD NATIVE SCOPED CONTAINER ---
-        function createPostObject(role, key, time, weight, sBound, eBound) {
-            return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
         }
 
         function processExamMasterTimeline(rows, rulesMap) {
@@ -542,90 +630,6 @@
             });
         }
 
-        function calculateDurationFromStrings(startStr, endStr) {
-            const startParts = startStr.split(":");
-            const endParts = endStr.split(":");
-            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-            let diffMins = endMins - startMins;
-            if (diffMins < 0) diffMins += 24 * 60;
-            return parseFloat((diffMins / 60).toFixed(2));
-        }
-
-        function cleanShorthandString(val) {
-            let str = String(val === undefined || val === null ? "" : val).trim();
-            if (/^\d{3,4}/.test(str)) {
-                let numPart = str.match(/^\d+/)[0];
-                if (numPart.length === 3) numPart = "0" + numPart;
-                str = numPart + str.substring(numPart.length - (numPart.length === 4 ? 0 : 1));
-            }
-            return str;
-        }
-
-        function parseMMDD(val) {
-            let str = cleanShorthandString(val);
-            if (str.length >= 4) {
-                let month = parseInt(str.substring(0, 2), 10);
-                let day = parseInt(str.substring(2, 4), 10);
-                return day + "/" + month;
-            }
-            return str;
-        }
-
-        function parseHHMM(val) {
-            let str = String(val || "").trim();
-            if (str.length === 3) str = "0" + str;
-            if (str.length === 4) {
-                return str.substring(0, 2) + ":" + str.substring(2, 4);
-            }
-            return str;
-        }
-
-        function addHoursToTime(timeStr, hoursToAdd) {
-            const parts = timeStr.split(":");
-            let hr = parseInt(parts[0], 10);
-            let min = parseInt(parts[1], 10);
-            let totalMins = hr * 60 + min + (hoursToAdd * 60);
-            let finalHr = Math.floor(totalMins / 60);
-            let finalMin = Math.round(totalMins % 60);
-            return (finalHr < 10 ? "0" + finalHr : finalHr) + ":" + (finalMin < 10 ? "0" + finalMin : finalMin);
-        }
-
-        function getDateSortWeight(dateString) {
-            if (!dateString) return 0;
-            const cleanStr = dateString.replace(/月|日/g, "/");
-            const parts = cleanStr.split("/");
-            let day = parseInt(parts[0], 10);
-            let month = parseInt(parts[1], 10);
-            if (isNaN(day) || !month) {
-                const rawNum = dateString.match(/\d+/);
-                if (rawNum && rawNum[0].length === 4) {
-                    month = parseInt(rawNum[0].substring(0, 2), 10);
-                    day = parseInt(rawNum[0].substring(2, 4), 10);
-                }
-            }
-            return (month * 100) + day;
-        }
-
-        function getTimeSortWeight(timeWindowString) {
-            if (!timeWindowString) return 0;
-            const baseStart = timeWindowString.split("-")[0].trim();
-            const parts = baseStart.split(":");
-            return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
-        }
-
-        function sortSessionsChronologically(sessionsArray) {
-            return sessionsArray.sort((a, b) => {
-                const dWA = getDateSortWeight(a.dateString);
-                const dWB = getDateSortWeight(b.dateString);
-                if (dWA !== dWB) return dWA - dWB;
-                const tWA = getTimeSortWeight(a.timeWindow);
-                const tWB = getTimeSortWeight(b.timeWindow);
-                if (tWA !== tWB) return tWA - tWB;
-                return a.id.localeCompare(b.id, undefined, {numeric: true});
-            });
-        }
-
         function populateFilterDropdownOptions() {
             const daySelect = document.getElementById("filter-day");
             const formSelect = document.getElementById("filter-form");
@@ -685,12 +689,11 @@
             drawGridCanvas();
         }
 
-        // --- UPGRADED CONTEXT RECOVERY: INTEGRATE STRUCTURAL MATRIX SEQUENCE ---
         function exportWorkspaceJSON() {
             if (sessionsData.length === 0) return alert("Workspace database data currently unpopulated.");
             const backupPackage = { 
                 staffRoster: staffRoster, 
-                staffOrderSequence: staffOrderSequence, // Captured sequence embedded securely inside backup package
+                staffOrderSequence: staffOrderSequence, 
                 sessionsData: sessionsData, 
                 savedAt: new Date().toISOString() 
             };
@@ -707,11 +710,10 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid schema tracking file dimensions.");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid template backup files attributes.");
                     
                     staffRoster = importedData.staffRoster; 
                     sessionsData = importedData.sessionsData;
-                    // Fallback to dictionary enumeration if restoring an outdated legacy structure package
                     staffOrderSequence = importedData.staffOrderSequence || Object.keys(staffRoster);
                     
                     populateFilterDropdownOptions(); 
@@ -801,18 +803,23 @@
         }
 
         function drawRosterSidebar() {
-            const container = document.getElementById("roster-box"); container.innerHTML = "";
+            const container = document.getElementById("roster-box"); 
+            if (!container) return;
+            container.innerHTML = "";
+            
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
             const balanceHours = Object.values(staffRoster).map(t => t.totalHours);
             
             if (balanceHours.length > 0) {
                 const max = Math.max(...balanceHours); const min = Math.min(...balanceHours); const variance = max - min;
                 const readout = document.getElementById("variance-readout"); const progress = document.getElementById("variance-progress-bar");
-                readout.innerText = `${variance.toFixed(2)}h`;
-                if (variance > allowedVarianceWindow) {
-                    readout.className = "text-rose-600 font-bold text-sm font-mono"; progress.className = "bg-rose-500 h-1.5 transition-all duration-300"; progress.style.width = "100%";
-                } else {
-                    readout.className = "text-emerald-600 font-bold text-sm font-mono"; progress.className = "bg-emerald-500 h-1.5 transition-all duration-300"; progress.style.width = `${(variance / allowedVarianceWindow) * 100}%`;
+                if (readout && progress) {
+                    readout.innerText = `${variance.toFixed(2)}h`;
+                    if (variance > allowedVarianceWindow) {
+                        readout.className = "text-rose-600 font-bold text-sm font-mono"; progress.className = "bg-rose-500 h-1.5 transition-all duration-300"; progress.style.width = "100%";
+                    } else {
+                        readout.className = "text-emerald-600 font-bold text-sm font-mono"; progress.className = "bg-emerald-500 h-1.5 transition-all duration-300"; progress.style.width = `${(variance / allowedVarianceWindow) * 100}%`;
+                    }
                 }
             }
 
@@ -949,8 +956,6 @@
         }
 
         function refreshAppPipeline() { computeOperationalHours(); drawRosterSidebar(); drawGridCanvas(); }
-
-        document.getElementById("variance-tolerance").addEventListener("change", () => { if(sessionsData.length > 0) refreshAppPipeline(); });
 
         function downloadMasterGridReport() {
             if (sessionsData.length === 0) return alert("No database loaded.");
