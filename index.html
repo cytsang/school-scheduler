@@ -224,12 +224,9 @@
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
-        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Alert flag message text strings.</span>
-    </div>
-
     <script>
         let staffRoster = {};
+        let staffOrderSequence = []; // NEW GLOBAL TRACKER Array to retain custom user sequence
         let sessionsData = [];
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
@@ -287,8 +284,10 @@
             return XLSX.utils.sheet_to_json(sheet, { defval: "" });
         }
 
+        // --- UPDATED PIPELINE: CAPTURE ORIGINAL WORKBOOK ROW SEQUENCES ---
         function buildStaffRosterMemory(rows) {
             staffRoster = {};
+            staffOrderSequence = []; 
             rows.forEach(row => {
                 const sName = String(row["StaffName"] || "").trim();
                 if (!sName) return;
@@ -304,6 +303,7 @@
                     unavailableBlocks: [],
                     rawAvailabilityRow: row 
                 };
+                staffOrderSequence.push(sName); // Store custom sheet position order
             });
         }
 
@@ -368,13 +368,6 @@
                 rulesMap[targetType][targetValue] = condition;
             });
             return rulesMap;
-        }
-
-        function getBlockSegment(timeStr) {
-            const hour = parseInt(timeStr.split(":")[0], 10);
-            if (hour < 10) return "B1";
-            if (hour < 13) return "B2";
-            return "B3";
         }
 
         function createPostObject(role, key, time, weight, sBound, eBound) {
@@ -540,16 +533,6 @@
                     }
                 });
             });
-        }
-
-        function calculateDurationFromStrings(startStr, endStr) {
-            const startParts = startStr.split(":");
-            const endParts = endStr.split(":");
-            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-            let diffMins = endMins - startMins;
-            if (diffMins < 0) diffMins += 24 * 60;
-            return parseFloat((diffMins / 60).toFixed(2));
         }
 
         function cleanShorthandString(val) {
@@ -788,6 +771,7 @@
             });
         }
 
+        // --- UPDATED VIEW RENDERER: DRAG DECK MIRRORS USER ROSTER SEQUENCE ---
         function drawRosterSidebar() {
             const container = document.getElementById("roster-box"); container.innerHTML = "";
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
@@ -804,7 +788,11 @@
                 }
             }
 
-            Object.entries(staffRoster).forEach(([name, data]) => {
+            // Loop strictly utilizing custom sheet sequence rows order
+            staffOrderSequence.forEach((name) => {
+                const data = staffRoster[name];
+                if (!data) return;
+
                 const block = document.createElement("div");
                 block.className = "bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg text-xs flex justify-between items-center hover:border-blue-400 transition-all cursor-grab active:cursor-grabbing group shadow-2xs";
                 let badges = "";
@@ -937,6 +925,7 @@
 
         document.getElementById("variance-tolerance").addEventListener("change", () => { if(sessionsData.length > 0) refreshAppPipeline(); });
 
+        // --- UPDATED EXPORT LAYER: EXPORTS RETAIN CUSTOM WORKBOOK SEQUENCE ---
         function downloadMasterGridReport() {
             if (sessionsData.length === 0) return alert("No database loaded.");
             const dayTrackerSet = new Set(); sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
@@ -945,7 +934,8 @@
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + "\n";
 
-            const sortedStaffNamesList = Object.keys(staffRoster).sort();
+            // Enforced original sheet entry sequence limits
+            const sortedStaffNamesList = [...staffOrderSequence];
             sortedStaffNamesList.forEach((teacherName, index) => {
                 const tData = staffRoster[teacherName]; const cleanRowIndex = index + 1;
                 const columnsMapData = {}; chronologicalTimelineColumns.forEach(d => { columnsMapData[d] = []; });
@@ -974,6 +964,7 @@
             fireToast("Master grid timeline matrix generated! ✓");
         }
 
+        // --- PRODUCTION EXPORT ENGINE: BARE TWIP PIXEL SECTIONS ---
         function downloadLandscapeWordDocument() {
             if (sessionsData.length === 0) return alert("Please parse database entries before generating Word print documents.");
             
@@ -1108,6 +1099,7 @@
             });
         }
 
+        // --- UPDATED EXPORT LAYER: TEACHER LIST EXPORTS PRESERVE USER ROSTER SEQUENCE ---
         function downloadReport(reportType) {
             if (sessionsData.length === 0) return alert("No active calendar records available.");
             let csv = "data:text/csv;charset=utf-8,";
@@ -1123,7 +1115,9 @@
                 });
             } else {
                 csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
-                Object.keys(staffRoster).sort().forEach(tName => {
+                
+                // Read from user-defined roster row indices exclusively
+                staffOrderSequence.forEach(tName => {
                     const teacherDuties = [];
                     sessionsData.forEach(s => { s.posts.forEach(p => { if (p.staff === tName) teacherDuties.push({ session: s, post: p }); }); });
                     teacherDuties.sort((a, b) => {
