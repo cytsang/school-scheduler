@@ -29,11 +29,11 @@
             <p class="text-[11px] text-slate-400">100% Serverless Local Excel (.xlsx) Engine Mode</p>
         </div>
         <div class="flex gap-2 items-center">
-            <button onclick="toggleDocumentationModal(true)" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors mr-2 flex items-center gap-1">📖 View Data Entry Guide</button>
-            <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
-            <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
-            <button onclick="downloadMasterGridReport()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📅 Export Master Grid Matrix</button>
-            <button onclick="downloadLandscapePDFDocument()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors shadow-md flex items-center gap-1">📄 Export Landscape PDF Timetable</button>
+            <button onclick="window.toggleDocumentationModal(true)" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors mr-2 flex items-center gap-1">📖 View Data Entry Guide</button>
+            <button onclick="window.downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
+            <button onclick="window.downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
+            <button onclick="window.downloadMasterGridReport()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📅 Export Master Grid Matrix</button>
+            <button onclick="window.downloadLandscapePDFDocument()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors shadow-md flex items-center gap-1">📄 Export Landscape PDF Timetable</button>
         </div>
     </header>
 
@@ -51,7 +51,7 @@
             <span class="font-bold text-slate-500 uppercase tracking-wider">Step 2:</span>
             <label class="flex-1 flex items-center justify-between border border-slate-300 rounded-lg px-3 py-1.5 bg-slate-50 hover:bg-slate-100 cursor-pointer text-slate-600 transition-colors">
                 <span id="file-upload-label" class="truncate font-medium">📂 Choose/Upload Completed Data Workbook (.xlsx)...</span>
-                <input type="file" id="excel-file-picker" class="hidden" accept=".xlsx" onchange="processLocalExcelWorkbook(event)" />
+                <input type="file" id="excel-file-picker" class="hidden" accept=".xlsx" onchange="window.processLocalExcelWorkbook(event)" />
             </label>
         </div>
 
@@ -70,17 +70,17 @@
                     <option value="2.00">2.00h</option>
                 </select>
             </div>
-            <button onclick="runAutoScheduler()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-1.5 rounded-lg transition-all cursor-pointer shadow-md">⚡ Run Auto-Scheduler</button>
+            <button onclick="window.runAutoScheduler()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-1.5 rounded-lg transition-all cursor-pointer shadow-md">⚡ Run Auto-Scheduler</button>
         </div>
 
         <div class="h-5 w-px bg-slate-300 hidden lg:block"></div>
 
         <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200 ml-auto">
             <span class="text-[10px] font-bold text-slate-400 uppercase px-1">Session Recovery:</span>
-            <button onclick="exportWorkspaceJSON()" class="bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded transition-colors cursor-pointer">💾 Backup</button>
+            <button onclick="window.exportWorkspaceJSON()" class="bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded transition-colors cursor-pointer">💾 Backup</button>
             <label class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded transition-colors cursor-pointer">
                 📂 Import
-                <input type="file" id="import-json-file" class="hidden" accept=".json" onchange="importWorkspaceJSON(event)" />
+                <input type="file" id="import-json-file" class="hidden" accept=".json" onchange="window.importWorkspaceJSON(event)" />
             </label>
         </div>
     </section>
@@ -114,19 +114,19 @@
             <div class="bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-4 text-xs shrink-0">
                 <div class="flex items-center gap-1">
                     <span class="font-bold text-slate-400 uppercase text-[10px] tracking-wider mr-1">Table Filters:</span>
-                    <button id="btn-filter-all" onclick="clearTableFilters()" class="bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors">Show All</button>
+                    <button id="btn-filter-all" onclick="window.clearTableFilters()" class="bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors">Show All</button>
                 </div>
                 <div class="h-4 w-px bg-slate-200"></div>
                 <div class="flex items-center gap-1.5">
                     <label for="filter-day" class="font-semibold text-slate-500">Filter by Day:</label>
-                    <select id="filter-day" onchange="applyTableFilters()" class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium cursor-pointer focus:outline-blue-500">
+                    <select id="filter-day" onchange="window.applyTableFilters()" class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium cursor-pointer focus:outline-blue-500">
                         <option value="ALL">-- All Days --</option>
                     </select>
                 </div>
                 <div class="h-4 w-px bg-slate-200"></div>
                 <div class="flex items-center gap-1.5">
                     <label for="filter-form" class="font-semibold text-slate-500">Filter by Form:</label>
-                    <select id="filter-form" onchange="applyTableFilters()" class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium cursor-pointer focus:outline-blue-500">
+                    <select id="filter-form" onchange="window.applyTableFilters()" class="bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 font-medium cursor-pointer focus:outline-blue-500">
                         <option value="ALL">-- All Forms --</option>
                     </select>
                 </div>
@@ -168,7 +168,7 @@
                     <h2 class="text-white font-bold text-base tracking-tight">📖 Template Data Entry & Shorthand Code Manual</h2>
                     <p class="text-slate-400 text-[11px] mt-0.5">Reference guidelines for offline Excel spreadsheet configuration rules</p>
                 </div>
-                <button onclick="toggleDocumentationModal(false)" class="text-slate-400 hover:text-white font-black text-lg bg-slate-800 hover:bg-slate-700 h-8 w-8 rounded-lg cursor-pointer transition-colors flex items-center justify-center">×</button>
+                <button onclick="window.toggleDocumentationModal(false)" class="text-slate-400 hover:text-white font-black text-lg bg-slate-800 hover:bg-slate-700 h-8 w-8 rounded-lg cursor-pointer transition-colors flex items-center justify-center">×</button>
             </div>
             
             <div class="flex-1 overflow-y-auto p-6 space-y-6 text-slate-700 text-xs leading-relaxed bg-slate-50">
@@ -190,40 +190,14 @@
                                 <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">A</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">08:00 - 10:30</span>.</li>
                                 <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">B</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">10:30 - 13:00</span>.</li>
                                 <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">C</span> = Unavailable from <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">13:00 - 16:00</span>.</li>
-                                <li><em>Overlap Protection Engine:</em> Typing <span class="font-mono bg-slate-100 px-1 rounded">A</span> will block an exam row running from 10:15 - 11:45 because it intercepts the 08:00-10:30 boundary window mathematically.</li>
                             </ul>
                         </li>
-                    </ul>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">🛠️ Sheet 3: Session_Rules</h3>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Target_Type:</strong> Options include <span class="font-mono bg-slate-100 font-bold px-1 rounded">Subject</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Form</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Session_ID</span>.</li>
-                        <li><strong class="text-slate-800 font-semibold">Constraint_Condition:</strong> Codes include <span class="font-mono text-blue-700 font-bold">ONLY_CHINESE_TEACHERS</span>, <span class="font-mono text-blue-700 font-bold">ONLY_ENGLISH_TEACHERS</span>, <span class="font-mono text-blue-700 font-bold">ONLY_MATHS_TEACHERS</span>, and <span class="font-mono text-orange-700 font-bold">NO_BEGINNER_POST</span>.</li>
-                    </ul>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">💡 Sheet 4: Exam_Master</h3>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Venue Column = <span class="font-mono font-bold text-blue-700 bg-slate-100 px-1 rounded">OC</span>:</strong> Auto-explodes into <span class="font-semibold">5 independent classroom rows</span>.</li>
-                        <li><strong class="text-slate-800 font-semibold">Form Column:</strong> Combined flags <span class="font-mono font-bold bg-slate-100 px-1 rounded">J</span> maps Forms 1 & 2, while <span class="font-mono font-bold bg-slate-100 px-1 rounded">S</span> maps Forms 4 & 5.</li>
-                        <li><strong class="text-slate-800 font-semibold">Required Tokens:</strong> <span class="font-mono font-bold">C</span> (Chief), <span class="font-mono font-bold">I</span> (Invigilator), <span class="font-mono font-bold">B</span> (Beginner), <span class="font-mono font-bold">E</span> (Ender).</li>
-                    </ul>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📌 Sheet 5: Pre_Assignments</h3>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <li><strong class="text-slate-800 font-semibold">Post Shorthand:</strong> Supports short text tags like <span class="font-mono bg-slate-100 font-bold px-1 rounded">C</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Chief</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">I</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Invig</span> mapped sequentially.</li>
-                        <li><strong class="text-slate-800 font-semibold">Blank Timestamps:</strong> Auto-inherits parent timing blocks from Exam_Master and duplicates across both shifts for split sessions.</li>
                     </ul>
                 </div>
             </div>
             
             <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex justify-end shrink-0">
-                <button onclick="toggleDocumentationModal(false)" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2 rounded-lg transition-colors cursor-pointer">Return to Allocation Board</button>
+                <button onclick="window.toggleDocumentationModal(false)" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2 rounded-lg transition-colors cursor-pointer">Return to Allocation Board</button>
             </div>
         </div>
     </div>
@@ -235,7 +209,13 @@
     </div>
 
     <script>
-        // IMMUTABLE WINDOW ROOT INSTANT CHANNELS: Completely isolates loading race conditions
+        // FORCED ROOT LEVEL EXPOSURE: Binds variables instantly to window context, rendering load ordering bugs impossible.
+        window.staffRoster = {};
+        window.staffOrderSequence = [];
+        window.sessionsData = [];
+        window.activeDayFilter = "ALL";
+        window.activeFormFilter = "ALL";
+
         window.calculateDurationFromStrings = function(startStr, endStr) {
             const startParts = startStr.split(":");
             const endParts = endStr.split(":");
@@ -271,7 +251,7 @@
         };
 
         window.parseMMDD = function(val) {
-            let str = cleanShorthandString(val);
+            let str = window.cleanShorthandString(val);
             if (str.length >= 4) {
                 let month = parseInt(str.substring(0, 2), 10);
                 let day = parseInt(str.substring(2, 4), 10);
@@ -314,25 +294,16 @@
 
         window.sortSessionsChronologically = function(sessionsArray) {
             return sessionsArray.sort((a, b) => {
-                const dWA = getDateSortWeight(a.dateString);
-                const dWB = getDateSortWeight(b.dateString);
+                const dWA = window.getDateSortWeight(a.dateString);
+                const dWB = window.getDateSortWeight(b.dateString);
                 if (dWA !== dWB) return dWA - dWB;
-                const tWA = getTimeSortWeight(a.timeWindow);
-                const tWB = getTimeSortWeight(b.timeWindow);
+                const tWA = window.getTimeSortWeight(a.timeWindow);
+                const tWB = window.getTimeSortWeight(b.timeWindow);
                 if (tWA !== tWB) return tWA - tWB;
                 return a.id.localeCompare(b.id, undefined, {numeric: true});
             });
         };
 
-        window.toggleDocumentationModal = function(shouldOpen) {
-            const el = document.getElementById("documentation-modal");
-            if (el) {
-                if (shouldOpen) el.classList.remove("hidden");
-                else el.classList.add("hidden");
-            }
-        };
-
-        // CORE WORKSPACE ENGINES
         window.processLocalExcelWorkbook = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -343,8 +314,7 @@
             const tbody = document.getElementById("table-canvas-body");
             if (tbody) {
                 tbody.innerHTML = `
-                    <tr><td colspan="9" style="text-align:center; padding:50px; color:#94a3b8; font-family:monospace; font-weight:bold; text-transform:uppercase; tracking:0.1em;">
-                        <span style="display:inline-block; width:16px; height:16px; border:2px solid #2563eb; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; margin-right:8px; vertical-align:middle;"></span>
+                    <tr><td colspan="9" style="text-align:center; padding:50px; color:#94a3b8; font-family:monospace; font-weight:bold; text-transform:uppercase;">
                         Running Local Client-Side Calculation Engine Splits...
                     </td></tr>`;
             }
@@ -367,9 +337,9 @@
                     processExamMasterTimeline(rawMaster, rulesMap);
                     linkPreAssignments(rawPre);
 
-                    populateFilterDropdownOptions();
-                    refreshAppPipeline();
-                    fireToast("Excel workbook parsed and rendered successfully! ✓");
+                    window.populateFilterDropdownOptions();
+                    window.refreshAppPipeline();
+                    window.fireToast("Excel workbook parsed and rendered successfully! ✓");
                 } catch (err) {
                     alert("Excel Processing Error:\n" + err.message + "\nEnsure all worksheet tab names match the template exact.");
                     console.error(err);
@@ -385,14 +355,14 @@
         }
 
         function buildStaffRosterMemory(rows) {
-            staffRoster = {};
-            staffOrderSequence = []; 
+            window.staffRoster = {};
+            window.staffOrderSequence = []; 
             rows.forEach(row => {
                 const sName = String(row["StaffName"] || "").trim();
                 if (!sName) return;
                 const isDisc = String(row["Discipline"] || "").toUpperCase().trim() === "Y";
                 
-                staffRoster[sName] = {
+                window.staffRoster[sName] = {
                     staffId: row["StaffID"],
                     isChinese: String(row["Chinese"] || "").toUpperCase().trim() === "Y",
                     isEnglish: String(row["English"] || "").toUpperCase().trim() === "Y",
@@ -402,7 +372,7 @@
                     unavailableBlocks: [],
                     rawAvailabilityRow: row 
                 };
-                staffOrderSequence.push(sName); 
+                window.staffOrderSequence.push(sName); 
             });
         }
 
@@ -412,48 +382,20 @@
             
             rows.forEach(row => {
                 const sName = String(row["StaffName"] || "").trim();
-                if (!staffRoster[sName]) return;
+                if (!window.staffRoster[sName]) return;
 
                 headers.forEach(header => {
                     if (header === "StaffName" || header === "StaffID") return;
-                    const rawDateKey = cleanShorthandString(header);
+                    const rawDateKey = window.cleanShorthandString(header);
                     const tokens = String(row[header] || "").toUpperCase().trim();
 
                     if (tokens !== "") {
-                        if (!staffRoster[sName].dailyLockoutTokens) staffRoster[sName].dailyLockoutTokens = {};
-                        staffRoster[sName].dailyLockoutTokens[rawDateKey] = tokens;
+                        if (!window.staffRoster[sName].dailyLockoutTokens) window.staffRoster[sName].dailyLockoutTokens = {};
+                        window.staffRoster[sName].dailyLockoutTokens[rawDateKey] = tokens;
                     }
                 });
             });
         }
-
-        window.checkIsTeacherTimeConflicting = function(teacherName, dateStringKey, sessionStartStr, sessionEndStr) {
-            const teacher = staffRoster[teacherName];
-            if (!teacher || !teacher.dailyLockoutTokens) return false;
-            
-            const activeDayTokens = teacher.dailyLockoutTokens[dateStringKey];
-            if (!activeDayTokens) return false; 
-            
-            const toMins = (timeStr) => {
-                const p = timeStr.split(":");
-                return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
-            };
-
-            const exStart = toMins(sessionStartStr);
-            const exEnd = toMins(sessionEndStr);
-
-            const blocks = [];
-            if (activeDayTokens.includes("A")) blocks.push({ s: toMins("08:00"), e: toMins("10:30") });
-            if (activeDayTokens.includes("B")) blocks.push({ s: toMins("10:30"), e: toMins("13:00") });
-            if (activeDayTokens.includes("C")) blocks.push({ s: toMins("13:00"), e: toMins("16:00") });
-
-            for (let b of blocks) {
-                if (exStart < b.e && exEnd > b.s) {
-                    return true; 
-                }
-            }
-            return false;
-        };
 
         function buildRulesMemory(rows) {
             const rulesMap = {};
@@ -470,19 +412,19 @@
         }
 
         function processExamMasterTimeline(rows, rulesMap) {
-            sessionsData = [];
+            window.sessionsData = [];
             rows.forEach(row => {
                 const sId = String(row["Session_ID"] || "").trim();
                 if (!sId) return;
 
-                const rawDateInput = cleanShorthandString(row["Date"]);
+                const rawDateInput = window.cleanShorthandString(row["Date"]);
                 if (!rawDateInput) return; 
 
-                const dateString = parseMMDD(rawDateInput);
-                const startTimeStr = parseHHMM(row["Start Time"]);
-                const endTimeStr = parseHHMM(row["End Time"]);
+                const dateString = window.parseMMDD(rawDateInput);
+                const startTimeStr = window.parseHHMM(row["Start Time"]);
+                const endTimeStr = window.parseHHMM(row["End Time"]);
 
-                const calculatedDuration = calculateDurationFromStrings(startTimeStr, endTimeStr);
+                const calculatedDuration = window.calculateDurationFromStrings(startTimeStr, endTimeStr);
                 let userDuration = String(row["Duration"] || "").trim();
                 let rawDuration = calculatedDuration;
                 let durationWarning = false;
@@ -549,8 +491,8 @@
                             shiftBDuration = Math.max(0.25, rawDuration - shiftADuration);
                         }
 
-                        shiftATimeWindow = startTimeStr + " - " + addHoursToTime(startTimeStr, shiftADuration);
-                        shiftBTimeWindow = addHoursToTime(startTimeStr, shiftADuration) + " - " + endTimeStr;
+                        shiftATimeWindow = startTimeStr + " - " + window.addHoursToTime(startTimeStr, shiftADuration);
+                        shiftBTimeWindow = window.addHoursToTime(startTimeStr, shiftADuration) + " - " + endTimeStr;
                     }
 
                     const tokens = tokenString.split("");
@@ -559,10 +501,10 @@
                     tokens.forEach(token => {
                         if (token === "C") {
                             if (shouldTruncate) {
-                                session.posts.push(createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
-                                session.posts.push(createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
+                                session.posts.push(window.createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration, startTimeStr, window.addHoursToTime(startTimeStr, shiftADuration)));
+                                session.posts.push(window.createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration, window.addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
                             } else {
-                                session.posts.push(createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr));
+                                session.posts.push(window.createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr));
                             }
                         } else if (token === "I") {
                             const currentLabel = "Invigilator " + invigCounter;
@@ -570,19 +512,19 @@
                             invigCounter++;
 
                             if (shouldTruncate) {
-                                session.posts.push(createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
-                                session.posts.push(createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
+                                session.posts.push(window.createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration, startTimeStr, window.addHoursToTime(startTimeStr, shiftADuration)));
+                                session.posts.push(window.createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration, window.addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
                             } else {
-                                session.posts.push(createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr));
+                                session.posts.push(window.createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr));
                             }
                         } else if (token === "B") {
-                            session.posts.push(createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25, startTimeStr, endTimeStr));
+                            session.posts.push(window.createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25, startTimeStr, endTimeStr));
                         } else if (token === "E") {
-                            session.posts.push(createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25, startTimeStr, endTimeStr));
+                            session.posts.push(window.createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25, startTimeStr, endTimeStr));
                         }
                     });
 
-                    sessionsData.push(session);
+                    window.sessionsData.push(session);
                 }
             });
         }
@@ -595,7 +537,7 @@
                 
                 if (!targetSid || !rawPostInput || !assignedStaffName) return;
 
-                sessionsData.forEach(s => {
+                window.sessionsData.forEach(s => {
                     if (s.baseSessionId === targetSid || s.id === targetSid) {
                         for (let p of s.posts) {
                             if (p.pinned) continue; 
@@ -615,8 +557,8 @@
                                 p.staff = assignedStaffName;
                                 p.pinned = true; 
 
-                                const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
-                                const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
+                                const customStart = row["Start"] ? window.parseHHMM(row["Start"]) : "";
+                                const customEnd = row["End"] ? window.parseHHMM(row["End"]) : "";
                                 if (customStart && customEnd) {
                                     p.time = customStart + " - " + customEnd;
                                     p.startBounds = customStart;
@@ -641,7 +583,7 @@
             const uniqueDaysSet = new Set();
             const uniqueFormsSet = new Set();
             
-            sessionsData.forEach(s => {
+            window.sessionsData.forEach(s => {
                 if (s.dateString) uniqueDaysSet.add(s.dateString);
                 
                 if (s.form) {
@@ -656,7 +598,7 @@
                 }
             });
             
-            const sortedDays = [...uniqueDaysSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
+            const sortedDays = [...uniqueDaysSet].sort((a, b) => window.getDateSortWeight(a) - window.getDateSortWeight(b));
             sortedDays.forEach(day => {
                 daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
             });
@@ -666,39 +608,39 @@
                 formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
             });
             
-            daySelect.value = activeDayFilter;
-            formSelect.value = activeFormFilter;
+            daySelect.value = window.activeDayFilter;
+            formSelect.value = window.activeFormFilter;
         };
 
         window.applyTableFilters = function() {
-            activeDayFilter = document.getElementById("filter-day").value;
-            activeFormFilter = document.getElementById("filter-form").value;
+            window.activeDayFilter = document.getElementById("filter-day").value;
+            window.activeFormFilter = document.getElementById("filter-form").value;
             const allBtn = document.getElementById("btn-filter-all");
-            if (activeDayFilter === "ALL" && activeFormFilter === "ALL") {
+            if (window.activeDayFilter === "ALL" && window.activeFormFilter === "ALL") {
                 if (allBtn) allBtn.className = "bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
             } else {
                 if (allBtn) allBtn.className = "bg-slate-200 text-slate-700 hover:bg-slate-300 font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
             }
-            drawGridCanvas();
+            window.drawGridCanvas();
         };
 
         window.clearTableFilters = function() {
-            activeDayFilter = "ALL"; activeFormFilter = "ALL";
+            window.activeDayFilter = "ALL"; window.activeFormFilter = "ALL";
             const daySel = document.getElementById("filter-day");
             const formSel = document.getElementById("filter-form");
             if (daySel) daySel.value = "ALL";
             if (formSel) formSel.value = "ALL";
             const allBtn = document.getElementById("btn-filter-all");
             if (allBtn) allBtn.className = "bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
-            drawGridCanvas();
+            window.drawGridCanvas();
         };
 
         window.exportWorkspaceJSON = function() {
-            if (sessionsData.length === 0) return alert("Workspace database data currently unpopulated.");
+            if (window.sessionsData.length === 0) return alert("Workspace database data currently unpopulated.");
             const backupPackage = { 
-                staffRoster: staffRoster, 
-                staffOrderSequence: staffOrderSequence, 
-                sessionsData: sessionsData, 
+                staffRoster: window.staffRoster, 
+                staffOrderSequence: window.staffOrderSequence, 
+                sessionsData: window.sessionsData, 
                 savedAt: new Date().toISOString() 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPackage));
@@ -714,32 +656,32 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid schema tracking attributes.");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid parameters template files.");
                     
-                    staffRoster = importedData.staffRoster; 
-                    sessionsData = importedData.sessionsData;
-                    staffOrderSequence = importedData.staffOrderSequence || Object.keys(staffRoster);
+                    window.staffRoster = importedData.staffRoster; 
+                    window.sessionsData = importedData.sessionsData;
+                    window.staffOrderSequence = importedData.staffOrderSequence || Object.keys(window.staffRoster);
                     
-                    populateFilterDropdownOptions(); 
-                    refreshAppPipeline();
-                    fireToast("Interactive board state restored perfectly from JSON backup! ✓");
+                    window.populateFilterDropdownOptions(); 
+                    window.refreshAppPipeline();
+                    window.fireToast("Interactive board state restored perfectly from JSON backup! ✓");
                 } catch (err) { alert("File parsing error:\n" + err.message); }
             };
             reader.readAsText(file); event.target.value = '';
         };
 
         window.runAutoScheduler = function() {
-            if (sessionsData.length === 0) return alert("Please upload an Excel workbook before running allocation sweeps!");
+            if (window.sessionsData.length === 0) return alert("Please upload an Excel workbook before running allocation sweeps!");
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
             const MAX_ATTEMPTS = 500; let finalVariance = 99.0; let success = false;
 
             for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-                sessionsData.forEach(session => {
+                window.sessionsData.forEach(session => {
                     session.posts.forEach(post => { if (!post.pinned) post.staff = null; });
                 });
-                let chronologicalSessions = [...sessionsData];
+                let chronologicalSessions = [...window.sessionsData];
                 if (attempt > 1) { chronologicalSessions.sort(() => Math.random() - 0.5); }
-                else { chronologicalSessions = sortSessionsChronologically(chronologicalSessions); }
+                else { chronologicalSessions = window.sortSessionsChronologically(chronologicalSessions); }
                 let brokenSlotDetected = false;
 
                 for (let session of chronologicalSessions) {
@@ -747,10 +689,10 @@
                         if (post.staff) continue;
                         computeOperationalHours();
                         
-                        let basePool = Object.keys(staffRoster).filter(tName => {
-                            const t = staffRoster[tName];
+                        let basePool = Object.keys(window.staffRoster).filter(tName => {
+                            const t = window.staffRoster[tName];
                             
-                            if (checkIsTeacherTimeConflicting(tName, session.rawDateKey, post.startBounds, post.endBounds)) return false;
+                            if (window.checkIsTeacherTimeConflicting(tName, session.rawDateKey, post.startBounds, post.endBounds)) return false;
                             if (t.dailyDuties && t.dailyDuties[session.dateString] >= 1) return false;
                             
                             if (session.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return false;
@@ -762,45 +704,45 @@
                         if (basePool.length === 0) { brokenSlotDetected = true; break; }
 
                         let pristineTierPool = basePool.filter(tName => {
-                            const tokens = staffRoster[tName].dailyLockoutTokens;
+                            const tokens = window.staffRoster[tName].dailyLockoutTokens;
                             return !tokens || !tokens[session.rawDateKey]; 
                         });
 
                         let targetSelectionPool = pristineTierPool.length > 0 ? pristineTierPool : basePool;
 
                         targetSelectionPool.sort((a, b) => {
-                            return (staffRoster[a].totalHours + Math.random() * 0.4) - (staffRoster[b].totalHours + Math.random() * 0.4);
+                            return (window.staffRoster[a].totalHours + Math.random() * 0.4) - (window.staffRoster[b].totalHours + Math.random() * 0.4);
                         });
                         
                         post.staff = targetSelectionPool[0];
-                        if (!staffRoster[post.staff].dailyDuties) staffRoster[post.staff].dailyDuties = {};
-                        if (!staffRoster[post.staff].dailyDuties[session.dateString]) staffRoster[post.staff].dailyDuties[session.dateString] = 0;
-                        staffRoster[post.staff].dailyDuties[session.dateString]++;
+                        if (!window.staffRoster[post.staff].dailyDuties) window.staffRoster[post.staff].dailyDuties = {};
+                        if (!window.staffRoster[post.staff].dailyDuties[session.dateString]) window.staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                        window.staffRoster[post.staff].dailyDuties[session.dateString]++;
                     }
                     if (brokenSlotDetected) break;
                 }
                 if (!brokenSlotDetected) {
                     computeOperationalHours();
-                    const balanceHours = Object.values(staffRoster).map(t => t.totalHours);
+                    const balanceHours = Object.values(window.staffRoster).map(t => t.totalHours);
                     finalVariance = Math.max(...balanceHours) - Math.min(...balanceHours);
                     if (finalVariance <= (allowedVarianceWindow + 0.001)) { success = true; break; }
                 }
             }
             if (!success) { alert(`⚠️ Hard Variance Target Unreached:\nCould not complete layout under your selected ${allowedVarianceWindow.toFixed(2)}h variance ceiling limit.\n(Best execution spread: ${finalVariance.toFixed(2)}h).`); }
-            else { fireToast("Auto-scheduling completed within variance parameters limit! ✓"); }
-            refreshAppPipeline();
+            else { window.fireToast("Auto-scheduling completed within variance parameters limit! ✓"); }
+            window.refreshAppPipeline();
         };
 
         function computeOperationalHours() {
-            Object.keys(staffRoster).forEach(name => {
-                staffRoster[name].totalHours = staffRoster[name].extraHours; staffRoster[name].dailyDuties = {};
+            Object.keys(window.staffRoster).forEach(name => {
+                window.staffRoster[name].totalHours = window.staffRoster[name].extraHours; window.staffRoster[name].dailyDuties = {};
             });
-            sessionsData.forEach(session => {
+            window.sessionsData.forEach(session => {
                 session.posts.forEach(post => {
-                    if (post.staff && staffRoster[post.staff]) {
-                        staffRoster[post.staff].totalHours += post.weight;
-                        if (!staffRoster[post.staff].dailyDuties[session.dateString]) staffRoster[post.staff].dailyDuties[session.dateString] = 0;
-                        staffRoster[post.staff].dailyDuties[session.dateString]++;
+                    if (post.staff && window.staffRoster[post.staff]) {
+                        window.staffRoster[post.staff].totalHours += post.weight;
+                        if (!window.staffRoster[post.staff].dailyDuties[session.dateString]) window.staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                        window.staffRoster[post.staff].dailyDuties[session.dateString]++;
                     }
                 });
             });
@@ -812,7 +754,7 @@
             container.innerHTML = "";
             
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
-            const balanceHours = Object.values(staffRoster).map(t => t.totalHours);
+            const balanceHours = Object.values(window.staffRoster).map(t => t.totalHours);
             
             if (balanceHours.length > 0) {
                 const max = Math.max(...balanceHours); const min = Math.min(...balanceHours); const variance = max - min;
@@ -827,8 +769,8 @@
                 }
             }
 
-            staffOrderSequence.forEach((name) => {
-                const data = staffRoster[name];
+            window.staffOrderSequence.forEach((name) => {
+                const data = window.staffRoster[name];
                 if (!data) return;
 
                 const block = document.createElement("div");
@@ -849,14 +791,14 @@
             const tbody = document.getElementById("table-canvas-body"); 
             if (!tbody) return;
             tbody.innerHTML = "";
-            if (sessionsData.length === 0) return;
+            if (window.sessionsData.length === 0) return;
 
-            const filteredSessions = sessionsData.filter(session => {
-                if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
+            const filteredSessions = window.sessionsData.filter(session => {
+                if (window.activeDayFilter !== "ALL" && session.dateString !== window.activeDayFilter) return false;
                 
-                if (activeFormFilter !== "ALL") {
+                if (window.activeFormFilter !== "ALL") {
                     const sessionForm = String(session.form).trim();
-                    const selectedForm = String(activeFormFilter).trim();
+                    const selectedForm = String(window.activeFormFilter).trim();
                     
                     if (sessionForm !== selectedForm) {
                         if (selectedForm === "1" || selectedForm === "2") {
@@ -875,7 +817,7 @@
                 tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-slate-400 italic">No matches found.</td></tr>`; return;
             }
 
-            const displayedSessions = sortSessionsChronologically([...filteredSessions]);
+            const displayedSessions = window.sortSessionsChronologically([...filteredSessions]);
 
             displayedSessions.forEach((session) => {
                 const totalPostRowsCount = session.posts.length;
@@ -893,7 +835,7 @@
 
                         let durationDisplayBlock = `<span class="text-slate-500 font-bold">(${session.duration.toFixed(2)}h)</span>`;
                         if (session.durationWarning) {
-                          durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Cross-check mismatch! Check Excel Master tab values row alignment.">⚠️ ${session.duration.toFixed(2)}h</span>`;
+                          durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Cross-check mismatch!">⚠️ ${session.duration.toFixed(2)}h</span>`;
                         }
 
                         structuralCellsBundleHTML = `
@@ -916,7 +858,7 @@
                                     <div class="absolute inset-0 bg-blue-50 text-blue-900 px-2 flex items-center justify-between font-bold border border-blue-200 rounded-lg text-[11px] overflow-hidden ${post.pinned ? 'pinned-card' : ''}">
                                         <span class="truncate pr-1">👤 ${post.staff}</span>
                                         <div class="flex items-center gap-1 shrink-0 bg-blue-50 pl-1">
-                                            ${post.pinned ? `<span class="text-[8px] bg-slate-200 text-slate-400 font-black px-1 rounded tracking-tighter">PIN</span>` : `<button onclick="clearVacancy('${session.id}','${post.key}')" class="text-slate-400 hover:text-red-500 font-black text-xs cursor-pointer px-0.5">×</button>`}
+                                            ${post.pinned ? `<span class="text-[8px] bg-slate-200 text-slate-400 font-black px-1 rounded tracking-tighter">PIN</span>` : `<button onclick="window.clearVacancy('${session.id}','${post.key}')" class="text-slate-400 hover:text-red-500 font-black text-xs cursor-pointer px-0.5">×</button>`}
                                         </div>
                                     </div>
                                  ` : `<span class="text-[9px] text-slate-300 italic select-none pointer-events-none">Empty Vacancy</span>`}
@@ -931,7 +873,7 @@
                         zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
                         zone.addEventListener("drop", (e) => {
                             e.preventDefault(); zone.classList.remove("drag-over");
-                            commitDropAssignment(e.dataTransfer.getData("text/plain"), session.id, post.key);
+                            window.commitDropAssignment(e.dataTransfer.getData("text/plain"), session.id, post.key);
                         });
                     }
                 });
@@ -939,20 +881,20 @@
         };
 
         window.commitDropAssignment = function(teacherName, sessionId, postKey) {
-            const s = sessionsData.find(x => x.id === sessionId); const p = s.posts.find(y => y.key === postKey); const t = staffRoster[teacherName];
+            const s = window.sessionsData.find(x => x.id === sessionId); const p = s.posts.find(y => y.key === postKey); const t = window.staffRoster[teacherName];
             
-            if (checkIsTeacherTimeConflicting(teacherName, s.rawDateKey, p.startBounds, p.endBounds)) {
-                return fireToast(`Conflict: ${teacherName} overlaps an unavailable block window on this day.`);
+            if (window.checkIsTeacherTimeConflicting(teacherName, s.rawDateKey, p.startBounds, p.endBounds)) {
+                return window.fireToast(`Conflict: ${teacherName} overlaps an unavailable block window on this day.`);
             }
-            if (t.dailyDuties[s.dateString] >= 1) return fireToast(`Conflict: ${teacherName} already assigned on: ${s.dateString}`);
-            if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return fireToast(`Rule Violation: Chinese Teacher lock.`);
-            if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return fireToast(`Rule Violation: English Teacher lock.`);
-            if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return fireToast(`Rule Violation: Maths Teacher lock.`);
-            p.staff = teacherName; refreshAppPipeline();
+            if (t.dailyDuties[s.dateString] >= 1) return window.fireToast(`Conflict: ${teacherName} already assigned on: ${s.dateString}`);
+            if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return window.fireToast(`Rule Violation: Chinese Teacher lock.`);
+            if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return window.fireToast(`Rule Violation: English Teacher lock.`);
+            if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return window.fireToast(`Rule Violation: Maths Teacher lock.`);
+            p.staff = teacherName; window.refreshAppPipeline();
         };
 
         window.clearVacancy = function(sessionId, postKey) {
-            sessionsData.find(x => x.id === sessionId).posts.find(y => y.key === postKey).staff = null; refreshAppPipeline();
+            window.sessionsData.find(x => x.id === sessionId).posts.find(y => y.key === postKey).staff = null; window.refreshAppPipeline();
         };
 
         window.fireToast = function(msg) {
@@ -964,22 +906,22 @@
             setTimeout(() => { el.className = el.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0"); }, 4000);
         };
 
-        window.refreshAppPipeline = function() { computeOperationalHours(); drawRosterSidebar(); drawGridCanvas(); };
+        window.refreshAppPipeline = function() { computeOperationalHours(); window.drawRosterSidebar(); window.drawGridCanvas(); };
 
         window.downloadMasterGridReport = function() {
-            if (sessionsData.length === 0) return alert("No active calendar records loaded.");
-            const dayTrackerSet = new Set(); sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
-            const chronologicalTimelineColumns = [...dayTrackerSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
+            if (window.sessionsData.length === 0) return alert("No active calendar records loaded.");
+            const dayTrackerSet = new Set(); window.sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
+            const chronologicalTimelineColumns = [...dayTrackerSet].sort((a, b) => window.getDateSortWeight(a) - window.getDateSortWeight(b));
 
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + ',"Special duty"\n';
 
-            const sortedStaffNamesList = [...staffOrderSequence];
+            const sortedStaffNamesList = [...window.staffOrderSequence];
             sortedStaffNamesList.forEach((teacherName, index) => {
-                const tData = staffRoster[teacherName]; const cleanRowIndex = index + 1;
+                const tData = window.staffRoster[teacherName]; const cleanRowIndex = index + 1;
                 const columnsMapData = {}; chronologicalTimelineColumns.forEach(d => { columnsMapData[d] = []; });
 
-                sessionsData.forEach(session => {
+                window.sessionsData.forEach(session => {
                     session.posts.forEach(post => {
                         if (post.staff === teacherName) {
                             let currentFormStringCode = session.form;
@@ -1004,19 +946,18 @@
             matrixDownloadAnchor.setAttribute("href", encodeURI(csvContent));
             matrixDownloadAnchor.setAttribute("download", `master_faculty_invigilation_timeline_matrix.csv`);
             document.body.appendChild(matrixDownloadAnchor); matrixDownloadAnchor.click(); matrixDownloadAnchor.remove();
-            fireToast("Master grid matrix layout compiled with special duty audit rules! ✓");
+            window.fireToast("Master grid matrix layout compiled with special duty audit rules! ✓");
         };
 
-        // --- FIXED VECTOR PDF COMPILATION ENGINE: STRIPPED ALL OKLCH CSS DEPENDENCIES ---
         window.downloadLandscapePDFDocument = function() {
-            if (sessionsData.length === 0) return alert("Please parse dataset entries before running vector layout prints.");
+            if (window.sessionsData.length === 0) return alert("Please parse dataset entries before running vector layout prints.");
             
             const printVaultNode = document.getElementById("pdf-printing-vault-node");
             if (!printVaultNode) return;
             printVaultNode.innerHTML = ""; 
 
             const distinctFormsFound = new Set();
-            sessionsData.forEach(s => {
+            window.sessionsData.forEach(s => {
                 if (s.form) {
                     const cleanF = String(s.form).trim();
                     if (cleanF === "J") { distinctFormsFound.add("1"); distinctFormsFound.add("2"); }
@@ -1037,7 +978,7 @@
                     </h2>
                 `;
 
-                const formMatchingSessions = sessionsData.filter(s => {
+                const formMatchingSessions = window.sessionsData.filter(s => {
                     const sf = String(s.form).trim();
                     if (sf === formLevel) return true;
                     if (sf === "J" && (formLevel === "1" || formLevel === "2")) return true;
@@ -1045,7 +986,7 @@
                     return false;
                 });
 
-                const orderedTimelineList = sortSessionsChronologically([...formMatchingSessions]);
+                const orderedTimelineList = window.sortSessionsChronologically([...formMatchingSessions]);
 
                 const tableElement = document.createElement("table");
                 tableElement.style.width = "100%";
@@ -1079,7 +1020,6 @@
                         const tr = document.createElement("tr");
                         tr.style.height = "26px";
                         
-                        // Hard fallback colors to stay independent of Tailwind v4 oklch spaces
                         if (session.constraintRule && session.constraintRule !== "NONE") {
                             tr.style.backgroundColor = "#f0fdf4"; 
                         } else {
@@ -1124,7 +1064,7 @@
             };
 
             html2pdf().set(captureConfigurationMap).from(printVaultNode).toContainer().toCanvas().toPdf().save().then(() => {
-                fireToast("Landscape document compiled into high-density PDF successfully! ✓");
+                window.fireToast("Landscape document compiled into high-density PDF successfully! ✓");
             }).catch(err => {
                 console.error("PDF Engine Crash Logs:", err);
                 alert("Print engine failure: " + err.message);
@@ -1132,14 +1072,14 @@
         };
 
         window.downloadReport = function(reportType) {
-            if (sessionsData.length === 0) return alert("No active calendar records available.");
+            if (window.sessionsData.length === 0) return alert("No active calendar records available.");
             let csv = "data:text/csv;charset=utf-8,";
             if (reportType === 'form') {
                 csv += "Form,Date,Time Window,Subject,Venue,Required Post Character Role,Assigned Staff Name\n";
-                const sorted = [...sessionsData].sort((a, b) => {
+                const sorted = [...window.sessionsData].sort((a, b) => {
                     const formComp = String(a.form).localeCompare(String(b.form), undefined, {numeric: true}); if (formComp !== 0) return formComp;
-                    const dateComp = getDateSortWeight(a.dateString) - getDateSortWeight(b.dateString); if (dateComp !== 0) return dateComp;
-                    return getTimeSortWeight(a.timeWindow) - getTimeSortWeight(b.timeWindow);
+                    const dateComp = window.getDateSortWeight(a.dateString) - window.getDateSortWeight(b.dateString); if (dateComp !== 0) return dateComp;
+                    return window.getTimeSortWeight(a.timeWindow) - window.getTimeSortWeight(b.timeWindow);
                 });
                 sorted.forEach(s => {
                     s.posts.forEach(p => { csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`; });
@@ -1147,12 +1087,12 @@
             } else {
                 csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
                 
-                staffOrderSequence.forEach(tName => {
+                window.staffOrderSequence.forEach(tName => {
                     const teacherDuties = [];
-                    sessionsData.forEach(s => { s.posts.forEach(p => { if (p.staff === tName) teacherDuties.push({ session: s, post: p }); }); });
+                    window.sessionsData.forEach(s => { s.posts.forEach(p => { if (p.staff === tName) teacherDuties.push({ session: s, post: p }); }); });
                     teacherDuties.sort((a, b) => {
-                        const dateComp = getDateSortWeight(a.session.dateString) - getDateSortWeight(b.session.dateString); if (dateComp !== 0) return dateComp;
-                        return getTimeSortWeight(a.session.timeWindow) - getTimeSortWeight(b.session.timeWindow);
+                        const dateComp = window.getDateSortWeight(a.session.dateString) - window.getDateSortWeight(b.session.dateString); if (dateComp !== 0) return dateComp;
+                        return window.getTimeSortWeight(a.session.timeWindow) - window.getTimeSortWeight(b.session.timeWindow);
                     });
                     teacherDuties.forEach(item => {
                         csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
@@ -1164,9 +1104,15 @@
             document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
         };
 
-        // DOM DECK REFRESH TRIGGER
+        // Enforce DOM configuration check safely
         document.addEventListener("DOMContentLoaded", () => {
-            if (sessionsData.length > 0) refreshAppPipeline();
+            if (window.sessionsData.length > 0) window.refreshAppPipeline();
+            const tol = document.getElementById("variance-tolerance");
+            if (tol) {
+                tol.addEventListener("change", () => { 
+                    if (window.sessionsData.length > 0) window.refreshAppPipeline(); 
+                });
+            }
         });
     </script>
 </body>
