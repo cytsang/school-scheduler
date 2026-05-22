@@ -6,7 +6,7 @@
     <title>Automated School Invigilation Local Workspace</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         .drag-over { border: 2px dashed #2563eb !important; background-color: #eff6ff !important; }
         .pinned-card { background: #f8fafc !important; border-color: #cbd5e1 !important; cursor: not-allowed !important; }
@@ -15,6 +15,11 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Print Typography Style Wrappers */
+        @media print {
+            .pdf-page-break { page-break-after: always !important; break-after: page !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden font-sans">
@@ -29,7 +34,7 @@
             <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
             <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
             <button onclick="downloadMasterGridReport()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📅 Export Master Grid Matrix</button>
-            <button onclick="downloadLandscapeWordDocument()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors shadow-md flex items-center gap-1">📄 Export Landscape Word Document</button>
+            <button onclick="downloadLandscapePDFDocument()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors shadow-md flex items-center gap-1">📄 Export Landscape PDF Timetable</button>
         </div>
     </header>
 
@@ -224,9 +229,7 @@
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
-        <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Alert flag message text strings.</span>
-    </div>
+    <div id="pdf-printing-vault-node" class="hidden text-slate-900 p-4 bg-white"></div>
 
     <script>
         let staffRoster = {};
@@ -235,7 +238,7 @@
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
 
-        // Lifecycle Safety Guard - Enforces elements exist before trigger updates run
+        // Lifecycle Safety Guard 
         document.addEventListener("DOMContentLoaded", () => {
             if (sessionsData.length > 0) refreshAppPipeline();
             document.getElementById("variance-tolerance").addEventListener("change", () => { 
@@ -249,7 +252,7 @@
             else el.classList.add("hidden");
         }
 
-        // --- GLOBALIZED LOGICAL MATHEMATICAL UTILITIES HUB ---
+        // --- PIPELINE UTILITIES ---
         function calculateDurationFromStrings(startStr, endStr) {
             const startParts = startStr.split(":");
             const endParts = endStr.split(":");
@@ -710,7 +713,7 @@
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid template backup files attributes.");
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid template backup configurations.");
                     
                     staffRoster = importedData.staffRoster; 
                     sessionsData = importedData.sessionsData;
@@ -957,14 +960,17 @@
 
         function refreshAppPipeline() { computeOperationalHours(); drawRosterSidebar(); drawGridCanvas(); }
 
+        // --- MASTER GRID MATRIX CSV GENERATION ENGINE ---
         function downloadMasterGridReport() {
-            if (sessionsData.length === 0) return alert("No database loaded.");
+            if (sessionsData.length === 0) return alert("No active calendar records loaded.");
             const dayTrackerSet = new Set(); sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
             const chronologicalTimelineColumns = [...dayTrackerSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
 
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + "\n";
+            // UPGRADE: "Special duty" appended as the clean terminating header track item
+            csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + ',"Special duty"\n';
 
+            // Loops strictly following original worksheet row index structures
             const sortedStaffNamesList = [...staffOrderSequence];
             sortedStaffNamesList.forEach((teacherName, index) => {
                 const tData = staffRoster[teacherName]; const cleanRowIndex = index + 1;
@@ -984,20 +990,29 @@
                     const dynamicDayDutiesArrayList = columnsMapData[date] || [];
                     return dynamicDayDutiesArrayList.length > 0 ? `"${dynamicDayDutiesArrayList.join(" ")}"` : '""';
                 });
-                csvContent += `"${cleanRowIndex}","${teacherName}","${tData.totalHours.toFixed(2)}",` + activeLineCellsBundleCSV.join(",") + "\n";
+
+                // AUDITING PROPERTY MAPPER: discipline masters/mistresses display explicitly as "1X"
+                let specialDutyAuditCell = '""';
+                if (tData.isDiscipline) {
+                    specialDutyAuditCell = '"1X"';
+                }
+
+                csvContent += `"${cleanRowIndex}","${teacherName}","${tData.totalHours.toFixed(2)}",` + activeLineCellsBundleCSV.join(",") + "," + specialDutyAuditCell + "\n";
             });
 
             const matrixDownloadAnchor = document.createElement("a");
             matrixDownloadAnchor.setAttribute("href", encodeURI(csvContent));
             matrixDownloadAnchor.setAttribute("download", `master_faculty_invigilation_timeline_matrix.csv`);
             document.body.appendChild(matrixDownloadAnchor); matrixDownloadAnchor.click(); matrixDownloadAnchor.remove();
-            fireToast("Master grid timeline matrix generated! ✓");
+            fireToast("Master grid matrix layout compiled with special duty audit rules! ✓");
         }
 
-        function downloadLandscapeWordDocument() {
-            if (sessionsData.length === 0) return alert("Please parse database entries before generating Word print documents.");
+        // --- UPGRADED VECTOR PDF COMPILATION ENGINE ---
+        function downloadLandscapePDFDocument() {
+            if (sessionsData.length === 0) return alert("Please parse dataset entries before running vector layout prints.");
             
-            const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, PageOrientation, PageBreak, AlignmentType, HeightRule } = docx;
+            const printVaultNode = document.getElementById("pdf-printing-vault-node");
+            printVaultNode.innerHTML = ""; // Clear existing document buffers
 
             const distinctFormsFound = new Set();
             sessionsData.forEach(s => {
@@ -1010,31 +1025,16 @@
             });
             const sortedFormsChronologicalList = [...distinctFormsFound].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
 
-            const outputChildrenNodes = [];
-
-            const cellBorders = {
-                top: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
-                bottom: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
-                left: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" },
-                right: { style: BorderStyle.SINGLE, size: 4, color: "cbd5e1" }
-            };
-
             sortedFormsChronologicalList.forEach((formLevel, fIdx) => {
-                if (fIdx > 0) {
-                    outputChildrenNodes.push(new Paragraph({ children: [new PageBreak()] }));
-                }
+                const multiPageBreakWrapper = document.createElement("div");
+                // Enforce sharp print engine break definitions right after form block conclusions
+                if (fIdx > 0) multiPageBreakWrapper.className = "pdf-page-break pt-6";
 
-                outputChildrenNodes.push(new Paragraph({
-                    children: [
-                        new TextRun({
-                            text: `Exam invigilation timetable for S${formLevel}`,
-                            bold: true,
-                            size: 32, 
-                            color: "0f172a"
-                        })
-                    ],
-                    spacing: { before: 200, after: 300 }
-                }));
+                multiPageBreakWrapper.innerHTML = `
+                    <h2 style="font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 12px; font-family: sans-serif;">
+                        Exam invigilation timetable for S${formLevel}
+                    </h2>
+                `;
 
                 const formMatchingSessions = sessionsData.filter(s => {
                     const sf = String(s.form).trim();
@@ -1046,85 +1046,85 @@
 
                 const orderedTimelineList = sortSessionsChronologically([...formMatchingSessions]);
 
-                const createHeaderCell = (txt, dxaWidth) => new TableCell({
-                    children: [new Paragraph({ children: [new TextRun({ text: txt, bold: true, color: "ffffff", size: 17 })], alignment: AlignmentType.CENTER })],
-                    width: { size: dxaWidth, type: WidthType.DXA },
-                    shading: { fill: "0f172a" },
-                    borders: cellBorders
-                });
+                const tableElement = document.createElement("table");
+                tableElement.style.width = "100%";
+                tableElement.style.borderCollapse = "collapse";
+                tableElement.style.fontSize = "10px";
+                tableElement.style.fontFamily = "sans-serif";
+                tableElement.style.marginBottom = "24px";
 
-                const tableHeaderRow = new TableRow({
-                    children: [
-                        createHeaderCell("Session", 900),
-                        createHeaderCell("Date/Blk", 1200),
-                        createHeaderCell("Form", 600),
-                        createHeaderCell("Subject Title", 2500),
-                        createHeaderCell("Venue Location", 2100),
-                        createHeaderCell("Exam Time", 2000),
-                        createHeaderCell("Required Post", 2000),
-                        createHeaderCell("Time/Weight", 1500),
-                        createHeaderCell("Assigned Staff", 2594)
-                    ],
-                    height: { value: 400, rule: HeightRule.ATLEAST }
-                });
+                tableElement.innerHTML = `
+                    <thead>
+                        <tr style="background-color: #0f172a; color: #ffffff; text-transform: uppercase; height: 28px;">
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; width: 8%;">Session</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; width: 10%;">Date/Blk</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; width: 5%;">Form</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 18%;">Subject Title</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 15%;">Venue Location</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 13%;">Exam Time</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 13%;">Required Post</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 8%;">Weight</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 12%;">Assigned Staff</th>
+                        </tr>
+                    </thead>
+                `;
 
-                const tableRowsCollection = [tableHeaderRow];
+                const tableBodyNode = document.createElement("tbody");
 
                 orderedTimelineList.forEach(session => {
+                    const totalPostRowsCount = session.posts.length;
+                    
                     session.posts.forEach((post, pIdx) => {
-                        const createDataCell = (txt, dxaWidth, isBold = false) => new TableCell({
-                            children: [new Paragraph({ children: [new TextRun({ text: txt, bold: isBold, size: 17 })] })],
-                            width: { size: dxaWidth, type: WidthType.DXA },
-                            borders: cellBorders,
-                            shading: (session.constraintRule && session.constraintRule !== "NONE") ? { fill: "f0fdf4" } : undefined
-                        });
-
-                        const rowChildrenNodes = [];
-                        
-                        if (pIdx === 0) {
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.id, bold: true, size: 17 })] })], rowSpan: session.posts.length, width: { size: 900, type: WidthType.DXA }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.dateString, size: 17 })] })], rowSpan: session.posts.length, width: { size: 1200, type: WidthType.DXA }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.form, size: 17 })], alignment: AlignmentType.CENTER })], rowSpan: session.posts.length, width: { size: 600, type: WidthType.DXA }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.subject, bold: true, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2500, type: WidthType.DXA }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.venue, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2100, type: WidthType.DXA }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.venue.includes("OC") ? "Global Block Time" : session.timeWindow, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2000, type: WidthType.DXA }, borders: cellBorders }));
+                        const tr = document.createElement("tr");
+                        tr.style.height = "26px";
+                        if (session.constraintRule && session.constraintRule !== "NONE") {
+                            tr.style.backgroundColor = "#f0fdf4"; // Pale highlight for verified constraint intersections
                         }
 
-                        rowChildrenNodes.push(createDataCell(post.role, 2000, true));
-                        rowChildrenNodes.push(createDataCell(`${post.time} (${post.weight}h)`, 1500));
-                        rowChildrenNodes.push(createDataCell(post.staff ? `👤 ${post.staff}` : "UNASSIGNED", 2594, true));
+                        let leadingCellsHTML = "";
+                        if (pIdx === 0) {
+                            leadingCellsHTML = `
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: bold; background-color: #ffffff;">${session.id}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; background-color: #ffffff; color: #64748b;">${session.dateString}<br>Blk ${session.startTime}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: bold; background-color: #ffffff;">${session.form}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; color: #0f172a; background-color: #ffffff;">${session.subject}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; color: #475569; background-color: #ffffff;">${session.venue}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; background-color: #ffffff; color: #334155;">${session.venue.includes("OC") ? "Global Block" : session.timeWindow}</td>
+                            `;
+                        }
 
-                        tableRowsCollection.push(new TableRow({ children: rowChildrenNodes, height: { value: 320, rule: HeightRule.ATLEAST } }));
+                        tr.innerHTML = `
+                            ${leadingCellsHTML}
+                            <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; color: #334155;">${post.role}</td>
+                            <td style="border: 1px solid #cbd5e1; padding: 4px; color: #94a3b8; font-family: monospace;">${post.weight.toFixed(2)}h</td>
+                            <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; color: ${post.staff ? '#1e3a8a' : '#b91c1c'};">
+                                ${post.staff ? `👤 ${post.staff}` : 'UNASSIGNED'}
+                            </td>
+                        `;
+                        tableBodyNode.appendChild(tr);
                     });
                 });
 
-                outputChildrenNodes.push(new Table({ rows: tableRowsCollection, width: { size: 15394, type: WidthType.DXA } }));
+                tableElement.appendChild(tableBodyNode);
+                multiPageBreakWrapper.appendChild(tableElement);
+                printVaultNode.appendChild(multiPageBreakWrapper);
             });
 
-            const doc = new Document({
-                sections: [{
-                    properties: {
-                        page: {
-                            size: { width: 16834, height: 11909 }, 
-                            orientation: PageOrientation.LANDSCAPE,
-                            margins: { top: 720, bottom: 720, left: 720, right: 720 } 
-                        }
-                    },
-                    children: outputChildrenNodes
-                }]
-            });
+            // Target dimensions matching landscape A4 print envelopes
+            const captureConfigurationMap = {
+                margin:       [0.4, 0.4, 0.4, 0.4],
+                filename:     'official_school_exam_invigilation_timetable.pdf',
+                image:        { type: 'jpeg', quality: 1.0 },
+                html2canvas:  { scale: 2.5, useCORS: true, logging: false },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+            };
 
-            Packer.toBlob(doc).then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `official_school_exam_invigilation_timetable.docx`;
-                document.body.appendChild(a); a.click(); a.remove();
-                window.URL.revokeObjectURL(url);
-                fireToast("Word document generated under narrow landscape dimensions! ✓");
+            // Process native binary canvas compile stream
+            html2pdf().set(captureConfigurationMap).from(printVaultNode).toContainer().toCanvas().toPdf().save().then(() => {
+                fireToast("Landscape document compiled into high-density PDF successfully! ✓");
             }).catch(err => {
-                console.error("DOCX Pack Error:", err);
-                alert("Error compiling Word Document layout: " + err.message);
+                console.error("PDF Engine Crash Logs:", err);
+                alert("Print engine failure: " + err.message);
             });
         }
 
