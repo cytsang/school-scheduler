@@ -24,6 +24,7 @@
             <p class="text-[11px] text-slate-400">100% Serverless Local Excel (.xlsx) Engine Mode</p>
         </div>
         <div class="flex gap-2">
+            <button onclick="toggleDocumentationModal(true)" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors mr-2 flex items-center gap-1">📖 View Data Entry Guide</button>
             <button onclick="downloadReport('form')" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-3.5 py-2 rounded-lg cursor-pointer transition-colors">📊 Export by Form</button>
             <button onclick="downloadReport('teacher')" class="bg-violet-600 hover:bg-violet-500 text-xs font-bold px-4 py-2 rounded-lg cursor-pointer transition-colors">👤 Export by Teacher</button>
             <button onclick="downloadMasterGridReport()" class="bg-emerald-600 hover:bg-emerald-500 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer transition-colors">📅 Export Master Grid Matrix</button>
@@ -154,6 +155,91 @@
         </main>
     </div>
 
+    <div id="documentation-modal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-2xl w-[85%] max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div class="bg-slate-900 px-6 py-4 flex justify-between items-center shrink-0">
+                <div>
+                    <h2 class="text-white font-bold text-base tracking-tight">📖 Template Data Entry & Shorthand Code Manual</h2>
+                    <p class="text-slate-400 text-[11px] mt-0.5">Reference guidelines for offline Excel spreadsheet configuration rules</p>
+                </div>
+                <button onclick="toggleDocumentationModal(false)" class="text-slate-400 hover:text-white font-black text-lg bg-slate-800 hover:bg-slate-700 h-8 w-8 rounded-lg cursor-pointer transition-colors flex items-center justify-center">×</button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-6 space-y-6 text-slate-700 text-xs leading-relaxed bg-slate-50">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">👤 Sheet 1: Staff_Roster</h3>
+                    <p class="mb-2 text-slate-500">Initializes teachers, system identification codes, and target subject qualification classifications.</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong class="text-slate-800 font-semibold">Discipline Column:</strong> Enter <span class="bg-slate-100 font-mono font-bold px-1 rounded text-purple-700">Y</span> to flag a Discipline Master/Mistress. The engine instantly allocates their mandatory <span class="font-semibold">+1.0h baseline offset contribution credit value</span> automatically.</li>
+                        <li><strong class="text-slate-800 font-semibold">Chinese / English / Maths Columns:</strong> Enter <span class="bg-slate-100 font-mono font-bold px-1 rounded text-blue-700">Y</span> to register subject specializations. These flags are cross-checked by the allocation engine rules.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📅 Sheet 2: Availability</h3>
+                    <p class="mb-2 text-slate-500">Configures individual leave periods and out-of-school scheduling block restrictions.</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong class="text-slate-800 font-semibold">Date Column Headers:</strong> Write dates exclusively as standard 4-digit shorthand texts (e.g., <span class="font-mono bg-slate-100 font-bold px-1 rounded">0608</span> for June 8th, <span class="font-mono bg-slate-100 font-bold px-1 rounded">0612</span> for June 12th).</li>
+                        <li><strong class="text-slate-800 font-semibold">Cell Value Block Tokens:</strong>
+                            <ul class="list-circle pl-5 mt-1 space-y-0.5">
+                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">A</span> = Unavailable during Block 1 (Exams starting before 10:00 AM).</li>
+                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">B</span> = Unavailable during Block 2 (Exams starting between 10:00 AM - 1:00 PM).</li>
+                                <li><span class="font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1">C</span> = Unavailable during Block 3 (Exams starting after 1:00 PM).</li>
+                                <li><em>Combinations:</em> String codes together freely. Entering <span class="font-mono font-bold bg-slate-100 px-1 rounded">AB</span> blocks morning/midday, while <span class="font-mono font-bold bg-slate-100 px-1 rounded">ABC</span> locks out the full day.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">🛠️ Sheet 3: Session_Rules</h3>
+                    <p class="mb-2 text-slate-500">Assigns macro-level departmental constraints across matching examination clusters.</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong class="text-slate-800 font-semibold">Target_Type:</strong> Tells the system the target column to monitor. Must match one of three exact keywords: <span class="font-mono bg-slate-100 font-bold px-1 rounded">Subject</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Form</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Session_ID</span>.</li>
+                        <li><strong class="text-slate-800 font-semibold">Constraint_Condition:</strong> The command parameter that dictates who is allowed to handle the duty:
+                            <ul class="list-circle pl-5 mt-1 space-y-0.5 font-medium text-slate-600">
+                                <li><span class="font-mono bg-blue-50 border border-blue-100 text-blue-700 font-bold px-1 rounded">ONLY_CHINESE_TEACHERS</span></li>
+                                <li><span class="font-mono bg-blue-50 border border-blue-100 text-blue-700 font-bold px-1 rounded">ONLY_ENGLISH_TEACHERS</span></li>
+                                <li><span class="font-mono bg-blue-50 border border-blue-100 text-blue-700 font-bold px-1 rounded">ONLY_MATHS_TEACHERS</span></li>
+                                <li><span class="font-mono bg-orange-50 border border-orange-100 text-orange-700 font-bold px-1 rounded">NO_BEGINNER_POST</span></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📝 Sheet 4: Exam_Master</h3>
+                    <p class="mb-2 text-slate-500">Defines your master examination timetable baseline grid timeline rows.</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong class="text-slate-800 font-semibold">Venue Column = <span class="font-mono font-bold text-blue-700 bg-slate-100 px-1 rounded">OC</span>:</strong> Code for "Own Classroom". The portal automatically explodes this single row line into <span class="font-semibold">5 distinct, independent classroom rows</span> on your allocation board layout.</li>
+                        <li><strong class="text-slate-800 font-semibold">Form Column:</strong> Combined codes are auto-supported. Entering <span class="font-mono font-bold bg-slate-100 px-1 rounded">J</span> represents all Junior classes (Form 1 and 2), while entering <span class="font-mono font-bold bg-slate-100 px-1 rounded">S</span> maps Senior classes (Form 4 and 5) cleanly during filter selection events.</li>
+                        <li><strong class="text-slate-800 font-semibold">Posts Required Token Strings:</strong> String character codes together to establish required staff roles:
+                            <ul class="list-circle pl-5 mt-1 space-y-0.5">
+                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">C</span> = Chief Invigilator slot (Auto-splits into Shift A and Shift B if total duration exceeds 2 hours).</li>
+                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">I</span> = Invigilator position (Can write duplicates sequentially, e.g., <span class="font-mono font-bold bg-slate-100 px-1.5 rounded">II</span> creates Invigilator 1 and Invigilator 2 slots).</li>
+                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">B</span> = Beginner role ($0.25\text{h}$ flat value).</li>
+                                <li><span class="font-mono font-bold bg-slate-100 px-1 rounded">E</span> = Ender role ($0.25\text{h}$ flat value).</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                    <h3 class="font-bold text-slate-900 border-b border-slate-100 pb-1.5 mb-2 flex items-center gap-2 text-sm">📌 Sheet 5: Pre_Assignments</h3>
+                    <p class="mb-2 text-slate-500">Locks specific staff members into pre-determined exam slots before the auto-allocation scheduler triggers.</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong class="text-slate-800 font-semibold">Post Role Shorthand Translation:</strong> Supports loose entries like <span class="font-mono bg-slate-100 font-bold px-1 rounded">C</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">Chief</span>, <span class="font-mono bg-slate-100 font-bold px-1 rounded">I</span>, or <span class="font-mono bg-slate-100 font-bold px-1 rounded">Invig</span>. The sequential engine stacks them neatly without duplicate overwrite crashes.</li>
+                        <li><strong class="text-slate-800 font-semibold">Blank Start / End Cells Inheritance:</strong> Leave timing cells blank to automatically inherit global timeframe metrics from `Exam_Master`. If an exam splits into Shift A and Shift B, the system safely links the pre-assigned teacher into <span class="font-semibold">both split shift slots</span>.</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex justify-end shrink-0">
+                <button onclick="toggleDocumentationModal(false)" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2 rounded-lg transition-colors cursor-pointer">Return to Allocation Board</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
         <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Alert flag message text strings.</span>
     </div>
@@ -163,6 +249,16 @@
         let sessionsData = [];
         let activeDayFilter = "ALL";
         let activeFormFilter = "ALL";
+
+        // NEW FUNCTION: Toggles visibility for the user-facing documentation modal overlay smoothly
+        function toggleDocumentationModal(shouldOpen) {
+            const el = document.getElementById("documentation-modal");
+            if (shouldOpen) {
+                el.classList.remove("hidden");
+            } else {
+                el.classList.add("hidden");
+            }
+        }
 
         function processLocalExcelWorkbook(event) {
             const file = event.target.files[0];
@@ -385,7 +481,6 @@
             });
         }
 
-        // --- FIXED SEQUENTIAL PRE-ASSIGNMENT FILLER ENGINE ---
         function linkPreAssignments(rows) {
             rows.forEach(row => {
                 const targetSid = String(row["Session_ID"] || "").trim();
@@ -396,12 +491,10 @@
 
                 sessionsData.forEach(s => {
                     if (s.baseSessionId === targetSid || s.id === targetSid) {
-                        
-                        // Sequential Sweep Lock: Find the FIRST slot matching this role type that isn't already pinned
                         let foundSlotToPin = false;
 
                         for (let p of s.posts) {
-                            if (p.pinned) continue; // Skip slots pinned by previous row entries
+                            if (p.pinned) continue; 
 
                             let matchFound = false;
                             if (rawPostInput === "C" || rawPostInput.startsWith("CHIEF")) {
@@ -416,16 +509,15 @@
 
                             if (matchFound) {
                                 p.staff = assignedStaffName;
-                                p.pinned = true; // Lock down from scheduler clear loops
+                                p.pinned = true; 
                                 foundSlotToPin = true;
 
-                                // Apply optional timestamp boundaries if typed explicitly
                                 const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
                                 const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
                                 if (customStart && customEnd) {
                                     p.time = customStart + " - " + customEnd;
                                 }
-                                break; // Break loop immediately after successfully filling one sequential position
+                                break; 
                             }
                         }
                     }
