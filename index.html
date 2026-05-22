@@ -377,6 +377,10 @@
             return "B3";
         }
 
+        function createPostObject(role, key, time, weight, sBound, eBound) {
+            return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
+        }
+
         function processExamMasterTimeline(rows, rulesMap) {
             sessionsData = [];
             rows.forEach(row => {
@@ -538,6 +542,16 @@
             });
         }
 
+        function calculateDurationFromStrings(startStr, endStr) {
+            const startParts = startStr.split(":");
+            const endParts = endStr.split(":");
+            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+            let diffMins = endMins - startMins;
+            if (diffMins < 0) diffMins += 24 * 60;
+            return parseFloat((diffMins / 60).toFixed(2));
+        }
+
         function cleanShorthandString(val) {
             let str = String(val === undefined || val === null ? "" : val).trim();
             if (/^\d{3,4}/.test(str)) {
@@ -565,10 +579,6 @@
                 return str.substring(0, 2) + ":" + str.substring(2, 4);
             }
             return str;
-        }
-
-        convert_to_twips: function createPostObject(role, key, time, weight, sBound, eBound) {
-            return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
         }
 
         function addHoursToTime(timeStr, hoursToAdd) {
@@ -964,7 +974,6 @@
             fireToast("Master grid timeline matrix generated! ✓");
         }
 
-        // --- PRODUCTION PATCHED EXPORT ENGINE: BARE PIXEL BINDINGS ---
         function downloadLandscapeWordDocument() {
             if (sessionsData.length === 0) return alert("Please parse database entries before generating Word print documents.");
             
@@ -1024,7 +1033,6 @@
                     borders: cellBorders
                 });
 
-                // Confines total printable table width exactly onto A4 narrow parameters canvas bounds
                 const tableHeaderRow = new TableRow({
                     children: [
                         createHeaderCell("Session", 900),
@@ -1059,7 +1067,7 @@
                             rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.form, size: 17 })], alignment: AlignmentType.CENTER })], rowSpan: session.posts.length, width: { size: 600, type: WidthType.DXA }, borders: cellBorders }));
                             rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.subject, bold: true, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2500, type: WidthType.DXA }, borders: cellBorders }));
                             rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.venue, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2100, type: WidthType.DXA }, borders: cellBorders }));
-                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.timeWindow, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2000, type: WidthType.DXA }, borders: cellBorders }));
+                            rowChildrenNodes.push(new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: session.venue.includes("OC") ? "Global Block Time" : session.timeWindow, size: 17 })] })], rowSpan: session.posts.length, width: { size: 2000, type: WidthType.DXA }, borders: cellBorders }));
                         }
 
                         rowChildrenNodes.push(createDataCell(post.role, 2000, true));
@@ -1073,14 +1081,13 @@
                 outputChildrenNodes.push(new Table({ rows: tableRowsCollection, width: { size: 15394, type: WidthType.DXA } }));
             });
 
-            // Absolute landscape structural canvas definitions mapping
             const doc = new Document({
                 sections: [{
                     properties: {
                         page: {
                             size: { width: 16834, height: 11909 }, 
                             orientation: PageOrientation.LANDSCAPE,
-                            margins: { top: 720, bottom: 720, left: 720, right: 720 } // Narrow 0.5" Margins
+                            margins: { top: 720, bottom: 720, left: 720, right: 720 } 
                         }
                     },
                     children: outputChildrenNodes
