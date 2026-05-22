@@ -1038,13 +1038,17 @@
         };
 
         // --- FIXED VECTOR PDF ENGINE: 0% TAILWIND PENETRATION FOR ABSOLUTE SAFETY ---
-        window.downloadLandscapePDFDocument = function() {
+window.downloadLandscapePDFDocument = function() {
             if (window.sessionsData.length === 0) return alert("No data to print.");
-            const printVaultNode = document.getElementById("pdf-printing-vault-node");
             
             const printVaultNode = document.getElementById("pdf-printing-vault-node");
             if (!printVaultNode) return;
+            
+            // Clear and prepare the node
             printVaultNode.innerHTML = ""; 
+            printVaultNode.style.display = "block";
+            printVaultNode.style.position = "absolute";
+            printVaultNode.style.left = "-9999px";
 
             const distinctFormsFound = new Set();
             window.sessionsData.forEach(s => {
@@ -1059,7 +1063,7 @@
 
             sortedFormsChronologicalList.forEach((formLevel, fIdx) => {
                 const multiPageBreakWrapper = document.createElement("div");
-                if (fIdx > 0) multiPageBreakWrapper.className = "pdf-page-break";
+                if (fIdx > 0) multiPageBreakWrapper.style.pageBreakBefore = "always";
                 multiPageBreakWrapper.style.paddingTop = "20px";
 
                 multiPageBreakWrapper.innerHTML = `
@@ -1105,26 +1109,20 @@
 
                 orderedTimelineList.forEach(session => {
                     const totalPostRowsCount = session.posts.length;
-                    
                     session.posts.forEach((post, pIdx) => {
                         const tr = document.createElement("tr");
                         tr.style.height = "26px";
-                        
-                        if (session.constraintRule && session.constraintRule !== "NONE") {
-                            tr.style.backgroundColor = "#f0fdf4"; 
-                        } else {
-                            tr.style.backgroundColor = "#ffffff";
-                        }
+                        tr.style.backgroundColor = (session.constraintRule && session.constraintRule !== "NONE") ? "#f0fdf4" : "#ffffff";
 
                         let leadingCellsHTML = "";
                         if (pIdx === 0) {
                             leadingCellsHTML = `
-                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold; color: #0f172a; background: #ffffff;">${session.id}</td>
-                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; color: #475569; background: #ffffff;">${session.dateString}<br>Blk ${session.startTime}</td>
-                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold; color: #0f172a; background: #ffffff;">${session.form}</td>
-                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #0f172a; background: #ffffff;">${session.subject}</td>
-                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; color: #334155; background: #ffffff;">${session.venue}</td>
-                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #334155; background: #ffffff;">${session.venue.includes("OC") ? "Global Block" : session.timeWindow}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold; color: #0f172a;">${session.id}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; color: #475569;">${session.dateString}<br>Blk ${session.startTime}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold; color: #0f172a;">${session.form}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #0f172a;">${session.subject}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; color: #334155;">${session.venue}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #334155;">${session.venue.includes("OC") ? "Global Block" : session.timeWindow}</td>
                             `;
                         }
 
@@ -1146,27 +1144,24 @@
             });
 
             const captureConfigurationMap = {
-                margin:       [0.4, 0.4, 0.4, 0.4],
-                filename:     'official_school_exam_invigilation_timetable.pdf',
-                image:        { type: 'jpeg', quality: 1.0 },
-                html2canvas:  { scale: 2.0, useCORS: true, logging: false },
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+                margin: [0.4, 0.4, 0.4, 0.4],
+                filename: 'official_school_exam_invigilation_timetable.pdf',
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { scale: 2.0, useCORS: true, logging: false },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
             };
 
             setTimeout(() => {
-                    html2pdf()
-                        .set(captureConfigurationMap)
-                        .from(printVaultNode)
-                        .save()
-                        .then(() => {
-                            window.fireToast("Landscape document compiled successfully! ✓");
-                        })
-                        .catch(err => {
-                            console.error("PDF Engine Crash Logs:", err);
-                            alert("Print engine failure: " + err.message);
-                        });
-                }, 1200); // Increased to 1200ms to ensure the table renders before capture
-            };
+                html2pdf().set(captureConfigurationMap).from(printVaultNode).save().then(() => {
+                    window.fireToast("Landscape document compiled successfully! ✓");
+                    printVaultNode.style.display = "none";
+                }).catch(err => {
+                    console.error("PDF Engine Crash Logs:", err);
+                    alert("Print engine failure: " + err.message);
+                    printVaultNode.style.display = "none";
+                });
+            }, 1200);
+        };
         
         window.downloadReport = function(reportType) {
             if (window.sessionsData.length === 0) return alert("No active calendar records available.");
