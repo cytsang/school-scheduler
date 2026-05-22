@@ -228,535 +228,536 @@
         </div>
     </div>
 
-    <div id="pdf-printing-vault-node" class="hidden text-slate-900 p-4 bg-white"></div>
+    <div id="pdf-printing-vault-node" class="hidden"></div>
 
     <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50">
         <span class="text-amber-400 font-bold">⚠️</span> <span id="toast-txt">Alert flag message text strings.</span>
     </div>
 
     <script>
-        // Global variables exposed safely to window scope
-        let staffRoster = {};
-        let staffOrderSequence = []; 
-        let sessionsData = [];
-        let activeDayFilter = "ALL";
-        let activeFormFilter = "ALL";
+        // IMMUTABLE WINDOW ROOT INSTANT CHANNELS: Completely isolates loading race conditions
+        window.calculateDurationFromStrings = function(startStr, endStr) {
+            const startParts = startStr.split(":");
+            const endParts = endStr.split(":");
+            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+            let diffMins = endMins - startMins;
+            if (diffMins < 0) diffMins += 24 * 60;
+            return parseFloat((diffMins / 60).toFixed(2));
+        };
 
-        // EXPLICIT WRAPPER: Ensures DOM renders completely, locking helper scope dependencies securely.
-        document.addEventListener("DOMContentLoaded", () => {
-            
-            // Core Math Utility Function - Locked within compilation context
-            window.calculateDurationFromStrings = function(startStr, endStr) {
-                const startParts = startStr.split(":");
-                const endParts = endStr.split(":");
-                const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-                const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-                let diffMins = endMins - startMins;
-                if (diffMins < 0) diffMins += 24 * 60;
-                return parseFloat((diffMins / 60).toFixed(2));
-            };
+        window.createPostObject = function(role, key, time, weight, sBound, eBound) {
+            return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
+        };
 
-            window.createPostObject = function(role, key, time, weight, sBound, eBound) {
-                return { role: role, key: key, time: time, weight: weight, startBounds: sBound, endBounds: eBound, staff: null, pinned: false };
-            };
+        window.addHoursToTime = function(timeStr, hoursToAdd) {
+            const parts = timeStr.split(":");
+            let hr = parseInt(parts[0], 10);
+            let min = parseInt(parts[1], 10);
+            let totalMins = hr * 60 + min + (hoursToAdd * 60);
+            let finalHr = Math.floor(totalMins / 60);
+            let finalMin = Math.round(totalMins % 60);
+            return (finalHr < 10 ? "0" + finalHr : finalHr) + ":" + (finalMin < 10 ? "0" + finalMin : finalMin);
+        };
 
-            window.addHoursToTime = function(timeStr, hoursToAdd) {
-                const parts = timeStr.split(":");
-                let hr = parseInt(parts[0], 10);
-                let min = parseInt(parts[1], 10);
-                let totalMins = hr * 60 + min + (hoursToAdd * 60);
-                let finalHr = Math.floor(totalMins / 60);
-                let finalMin = Math.round(totalMins % 60);
-                return (finalHr < 10 ? "0" + finalHr : finalHr) + ":" + (finalMin < 10 ? "0" + finalMin : finalMin);
-            };
+        window.cleanShorthandString = function(val) {
+            let str = String(val === undefined || val === null ? "" : val).trim();
+            if (/^\d{3,4}/.test(str)) {
+                let numPart = str.match(/^\d+/)[0];
+                if (numPart.length === 3) numPart = "0" + numPart;
+                str = numPart + str.substring(numPart.length - (numPart.length === 4 ? 0 : 1));
+            }
+            return str;
+        };
 
-            window.cleanShorthandString = function(val) {
-                let str = String(val === undefined || val === null ? "" : val).trim();
-                if (/^\d{3,4}/.test(str)) {
-                    let numPart = str.match(/^\d+/)[0];
-                    if (numPart.length === 3) numPart = "0" + numPart;
-                    str = numPart + str.substring(numPart.length - (numPart.length === 4 ? 0 : 1));
+        window.parseMMDD = function(val) {
+            let str = cleanShorthandString(val);
+            if (str.length >= 4) {
+                let month = parseInt(str.substring(0, 2), 10);
+                let day = parseInt(str.substring(2, 4), 10);
+                return day + "/" + month;
+            }
+            return str;
+        };
+
+        window.parseHHMM = function(val) {
+            let str = String(val || "").trim();
+            if (str.length === 3) str = "0" + str;
+            if (str.length === 4) {
+                return str.substring(0, 2) + ":" + str.substring(2, 4);
+            }
+            return str;
+        };
+
+        window.getDateSortWeight = function(dateString) {
+            if (!dateString) return 0;
+            const cleanStr = dateString.replace(/月|日/g, "/");
+            const parts = cleanStr.split("/");
+            let day = parseInt(parts[0], 10);
+            let month = parseInt(parts[1], 10);
+            if (isNaN(day) || !month) {
+                const rawNum = dateString.match(/\d+/);
+                if (rawNum && rawNum[0].length === 4) {
+                    month = parseInt(rawNum[0].substring(0, 2), 10);
+                    day = parseInt(rawNum[0].substring(2, 4), 10);
                 }
-                return str;
-            };
+            }
+            return (month * 100) + day;
+        };
 
-            window.parseMMDD = function(val) {
-                let str = cleanShorthandString(val);
-                if (str.length >= 4) {
-                    let month = parseInt(str.substring(0, 2), 10);
-                    let day = parseInt(str.substring(2, 4), 10);
-                    return day + "/" + month;
-                }
-                return str;
-            };
+        window.getTimeSortWeight = function(timeWindowString) {
+            if (!timeWindowString) return 0;
+            const baseStart = timeWindowString.split("-")[0].trim();
+            const parts = baseStart.split(":");
+            return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+        };
 
-            window.parseHHMM = function(val) {
-                let str = String(val || "").trim();
-                if (str.length === 3) str = "0" + str;
-                if (str.length === 4) {
-                    return str.substring(0, 2) + ":" + str.substring(2, 4);
-                }
-                return str;
-            };
+        window.sortSessionsChronologically = function(sessionsArray) {
+            return sessionsArray.sort((a, b) => {
+                const dWA = getDateSortWeight(a.dateString);
+                const dWB = getDateSortWeight(b.dateString);
+                if (dWA !== dWB) return dWA - dWB;
+                const tWA = getTimeSortWeight(a.timeWindow);
+                const tWB = getTimeSortWeight(b.timeWindow);
+                if (tWA !== tWB) return tWA - tWB;
+                return a.id.localeCompare(b.id, undefined, {numeric: true});
+            });
+        };
 
-            window.getDateSortWeight = function(dateString) {
-                if (!dateString) return 0;
-                const cleanStr = dateString.replace(/月|日/g, "/");
-                const parts = cleanStr.split("/");
-                let day = parseInt(parts[0], 10);
-                let month = parseInt(parts[1], 10);
-                if (isNaN(day) || !month) {
-                    const rawNum = dateString.match(/\d+/);
-                    if (rawNum && rawNum[0].length === 4) {
-                        month = parseInt(rawNum[0].substring(0, 2), 10);
-                        day = parseInt(rawNum[0].substring(2, 4), 10);
-                    }
-                }
-                return (month * 100) + day;
-            };
-
-            window.getTimeSortWeight = function(timeWindowString) {
-                if (!timeWindowString) return 0;
-                const baseStart = timeWindowString.split("-")[0].trim();
-                const parts = baseStart.split(":");
-                return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
-            };
-
-            window.sortSessionsChronologically = function(sessionsArray) {
-                return sessionsArray.sort((a, b) => {
-                    const dWA = getDateSortWeight(a.dateString);
-                    const dWB = getDateSortWeight(b.dateString);
-                    if (dWA !== dWB) return dWA - dWB;
-                    const tWA = getTimeSortWeight(a.timeWindow);
-                    const tWB = getTimeSortWeight(b.timeWindow);
-                    if (tWA !== tWB) return tWA - tWB;
-                    return a.id.localeCompare(b.id, undefined, {numeric: true});
-                });
-            };
-
-            window.toggleDocumentationModal = function(shouldOpen) {
-                const el = document.getElementById("documentation-modal");
+        window.toggleDocumentationModal = function(shouldOpen) {
+            const el = document.getElementById("documentation-modal");
+            if (el) {
                 if (shouldOpen) el.classList.remove("hidden");
                 else el.classList.add("hidden");
-            };
+            }
+        };
 
-            // Excel Workbook Pipeline Loader Entry
-            window.processLocalExcelWorkbook = function(event) {
-                const file = event.target.files[0];
-                if (!file) return;
+        // CORE WORKSPACE ENGINES
+        window.processLocalExcelWorkbook = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-                document.getElementById("file-upload-label").innerText = `📂 Processing: ${file.name}...`;
-                document.getElementById("table-canvas-body").innerHTML = `
-                    <tr><td colspan="9" class="text-center p-20 bg-white font-mono uppercase tracking-widest text-slate-400">
-                        <span class="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2 align-middle"></span>
+            const label = document.getElementById("file-upload-label");
+            if (label) label.innerText = `📂 Processing: ${file.name}...`;
+            
+            const tbody = document.getElementById("table-canvas-body");
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr><td colspan="9" style="text-align:center; padding:50px; color:#94a3b8; font-family:monospace; font-weight:bold; text-transform:uppercase; tracking:0.1em;">
+                        <span style="display:inline-block; width:16px; height:16px; border:2px solid #2563eb; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; margin-right:8px; vertical-align:middle;"></span>
                         Running Local Client-Side Calculation Engine Splits...
                     </td></tr>`;
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array', cellDates: false });
-                        
-                        const rawStaff = extractRowsFromSheet(workbook, "Staff_Roster");
-                        const rawAvail = extractRowsFromSheet(workbook, "Availability");
-                        const rawRules = extractRowsFromSheet(workbook, "Session_Rules");
-                        const rawMaster = extractRowsFromSheet(workbook, "Exam_Master");
-                        const rawPre = extractRowsFromSheet(workbook, "Pre_Assignments");
-
-                        buildStaffRosterMemory(rawStaff);
-                        parseAvailabilityConstraints(rawAvail);
-                        const rulesMap = buildRulesMemory(rawRules);
-                        processExamMasterTimeline(rawMaster, rulesMap);
-                        linkPreAssignments(rawPre);
-
-                        populateFilterDropdownOptions();
-                        refreshAppPipeline();
-                        fireToast("Excel workbook parsed and rendered successfully! ✓");
-                    } catch (err) {
-                        alert("Excel Processing Error:\n" + err.message + "\nEnsure all worksheet tab names match the template exact.");
-                        console.error(err);
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            };
-
-            function extractRowsFromSheet(workbook, sheetName) {
-                const sheet = workbook.Sheets[sheetName];
-                if (!sheet) return [];
-                return XLSX.utils.sheet_to_json(sheet, { defval: "" });
             }
 
-            function buildStaffRosterMemory(rows) {
-                staffRoster = {};
-                staffOrderSequence = []; 
-                rows.forEach(row => {
-                    const sName = String(row["StaffName"] || "").trim();
-                    if (!sName) return;
-                    const isDisc = String(row["Discipline"] || "").toUpperCase().trim() === "Y";
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                     
-                    staffRoster[sName] = {
-                        staffId: row["StaffID"],
-                        isChinese: String(row["Chinese"] || "").toUpperCase().trim() === "Y",
-                        isEnglish: String(row["English"] || "").toUpperCase().trim() === "Y",
-                        isMaths: String(row["Maths"] || "").toUpperCase().trim() === "Y",
-                        isDiscipline: isDisc,
-                        extraHours: isDisc ? 1.0 : 0.0,
-                        unavailableBlocks: [],
-                        rawAvailabilityRow: row 
+                    const rawStaff = extractRowsFromSheet(workbook, "Staff_Roster");
+                    const rawAvail = extractRowsFromSheet(workbook, "Availability");
+                    const rawRules = extractRowsFromSheet(workbook, "Session_Rules");
+                    const rawMaster = extractRowsFromSheet(workbook, "Exam_Master");
+                    const rawPre = extractRowsFromSheet(workbook, "Pre_Assignments");
+
+                    buildStaffRosterMemory(rawStaff);
+                    parseAvailabilityConstraints(rawAvail);
+                    const rulesMap = buildRulesMemory(rawRules);
+                    processExamMasterTimeline(rawMaster, rulesMap);
+                    linkPreAssignments(rawPre);
+
+                    populateFilterDropdownOptions();
+                    refreshAppPipeline();
+                    fireToast("Excel workbook parsed and rendered successfully! ✓");
+                } catch (err) {
+                    alert("Excel Processing Error:\n" + err.message + "\nEnsure all worksheet tab names match the template exact.");
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        function extractRowsFromSheet(workbook, sheetName) {
+            const sheet = workbook.Sheets[sheetName];
+            if (!sheet) return [];
+            return XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        }
+
+        function buildStaffRosterMemory(rows) {
+            staffRoster = {};
+            staffOrderSequence = []; 
+            rows.forEach(row => {
+                const sName = String(row["StaffName"] || "").trim();
+                if (!sName) return;
+                const isDisc = String(row["Discipline"] || "").toUpperCase().trim() === "Y";
+                
+                staffRoster[sName] = {
+                    staffId: row["StaffID"],
+                    isChinese: String(row["Chinese"] || "").toUpperCase().trim() === "Y",
+                    isEnglish: String(row["English"] || "").toUpperCase().trim() === "Y",
+                    isMaths: String(row["Maths"] || "").toUpperCase().trim() === "Y",
+                    isDiscipline: isDisc,
+                    extraHours: isDisc ? 1.0 : 0.0,
+                    unavailableBlocks: [],
+                    rawAvailabilityRow: row 
+                };
+                staffOrderSequence.push(sName); 
+            });
+        }
+
+        function parseAvailabilityConstraints(rows) {
+            if (rows.length === 0) return;
+            const headers = Object.keys(rows[0]);
+            
+            rows.forEach(row => {
+                const sName = String(row["StaffName"] || "").trim();
+                if (!staffRoster[sName]) return;
+
+                headers.forEach(header => {
+                    if (header === "StaffName" || header === "StaffID") return;
+                    const rawDateKey = cleanShorthandString(header);
+                    const tokens = String(row[header] || "").toUpperCase().trim();
+
+                    if (tokens !== "") {
+                        if (!staffRoster[sName].dailyLockoutTokens) staffRoster[sName].dailyLockoutTokens = {};
+                        staffRoster[sName].dailyLockoutTokens[rawDateKey] = tokens;
+                    }
+                });
+            });
+        }
+
+        window.checkIsTeacherTimeConflicting = function(teacherName, dateStringKey, sessionStartStr, sessionEndStr) {
+            const teacher = staffRoster[teacherName];
+            if (!teacher || !teacher.dailyLockoutTokens) return false;
+            
+            const activeDayTokens = teacher.dailyLockoutTokens[dateStringKey];
+            if (!activeDayTokens) return false; 
+            
+            const toMins = (timeStr) => {
+                const p = timeStr.split(":");
+                return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+            };
+
+            const exStart = toMins(sessionStartStr);
+            const exEnd = toMins(sessionEndStr);
+
+            const blocks = [];
+            if (activeDayTokens.includes("A")) blocks.push({ s: toMins("08:00"), e: toMins("10:30") });
+            if (activeDayTokens.includes("B")) blocks.push({ s: toMins("10:30"), e: toMins("13:00") });
+            if (activeDayTokens.includes("C")) blocks.push({ s: toMins("13:00"), e: toMins("16:00") });
+
+            for (let b of blocks) {
+                if (exStart < b.e && exEnd > b.s) {
+                    return true; 
+                }
+            }
+            return false;
+        };
+
+        function buildRulesMemory(rows) {
+            const rulesMap = {};
+            rows.forEach(row => {
+                const targetType = String(row["Target_Type"] || "").trim();
+                const targetValue = String(row["Target_Value"] || "").trim();
+                const condition = String(row["Constraint_Condition"] || "").trim();
+                if (!targetType || !targetValue) return;
+
+                if (!rulesMap[targetType]) rulesMap[targetType] = {};
+                rulesMap[targetType][targetValue] = condition;
+            });
+            return rulesMap;
+        }
+
+        function processExamMasterTimeline(rows, rulesMap) {
+            sessionsData = [];
+            rows.forEach(row => {
+                const sId = String(row["Session_ID"] || "").trim();
+                if (!sId) return;
+
+                const rawDateInput = cleanShorthandString(row["Date"]);
+                if (!rawDateInput) return; 
+
+                const dateString = parseMMDD(rawDateInput);
+                const startTimeStr = parseHHMM(row["Start Time"]);
+                const endTimeStr = parseHHMM(row["End Time"]);
+
+                const calculatedDuration = calculateDurationFromStrings(startTimeStr, endTimeStr);
+                let userDuration = String(row["Duration"] || "").trim();
+                let rawDuration = calculatedDuration;
+                let durationWarning = false;
+
+                if (userDuration !== "") {
+                    userDuration = parseFloat(userDuration);
+                    if (Math.abs(userDuration - calculatedDuration) > 0.02) {
+                        durationWarning = true;
+                        rawDuration = userDuration;
+                    }
+                }
+
+                const formVal = String(row["Form"] || "").trim();
+                const subjVal = String(row["Subject"] || "").trim();
+                const venueVal = String(row["Venue"] || "").trim().toUpperCase();
+                const tokenString = String(row["Posts Required"] || "").toUpperCase().trim();
+
+                let appliedRule = "NONE";
+                if (rulesMap["Session_ID"] && rulesMap["Session_ID"][sId]) appliedRule = rulesMap["Session_ID"][sId];
+                else if (rulesMap["Subject"] && rulesMap["Subject"][subjVal]) appliedRule = rulesMap["Subject"][subjVal];
+                else if (rulesMap["Form"] && rulesMap["Form"][formVal]) appliedRule = rulesMap["Form"][formVal];
+
+                const isOwnClassroom = (venueVal === "OC");
+                const roomLoopLimit = isOwnClassroom ? 5 : 1;
+
+                for (let roomIdx = 1; roomIdx <= roomLoopLimit; roomIdx++) {
+                    const expandedSessionId = isOwnClassroom ? `${sId}-R${roomIdx}` : sId;
+                    const expandedVenueName = isOwnClassroom ? `OC (Classroom ${roomIdx})` : venueVal;
+
+                    const session = {
+                        id: expandedSessionId,
+                        baseSessionId: sId,
+                        rawDateKey: rawDateInput, 
+                        dateString: dateString,
+                        startTime: startTimeStr,
+                        endTime: endTimeStr,
+                        timeWindow: startTimeStr + " - " + endTimeStr,
+                        duration: rawDuration,
+                        durationWarning: durationWarning,
+                        form: formVal,
+                        subject: subjVal,
+                        venue: expandedVenueName,
+                        constraintRule: appliedRule,
+                        posts: []
                     };
-                    staffOrderSequence.push(sName); 
-                });
-            }
 
-            function parseAvailabilityConstraints(rows) {
-                if (rows.length === 0) return;
-                const headers = Object.keys(rows[0]);
-                
-                rows.forEach(row => {
-                    const sName = String(row["StaffName"] || "").trim();
-                    if (!staffRoster[sName]) return;
+                    const shouldTruncate = rawDuration > 2.0;
+                    let shiftADuration = 0;
+                    let shiftBDuration = 0;
+                    let shiftATimeWindow = "";
+                    let shiftBTimeWindow = "";
 
-                    headers.forEach(header => {
-                        if (header === "StaffName" || header === "StaffID") return;
-                        const rawDateKey = cleanShorthandString(header);
-                        const tokens = String(row[header] || "").toUpperCase().trim();
+                    if (shouldTruncate) {
+                        let targetSplit = Math.floor(rawDuration / 2 * 4) / 4;
+                        shiftADuration = Math.max(1.0, targetSplit);
+                        shiftBDuration = rawDuration - shiftADuration;
 
-                        if (tokens !== "") {
-                            if (!staffRoster[sName].dailyLockoutTokens) staffRoster[sName].dailyLockoutTokens = {};
-                            staffRoster[sName].dailyLockoutTokens[rawDateKey] = tokens;
+                        if (shiftBDuration < 0.5) {
+                            shiftBDuration = 0.5;
+                            shiftADuration = rawDuration - shiftBDuration;
+                        }
+                        if (shiftADuration < 1.0) {
+                            shiftADuration = 1.0;
+                            shiftBDuration = Math.max(0.25, rawDuration - shiftADuration);
+                        }
+
+                        shiftATimeWindow = startTimeStr + " - " + addHoursToTime(startTimeStr, shiftADuration);
+                        shiftBTimeWindow = addHoursToTime(startTimeStr, shiftADuration) + " - " + endTimeStr;
+                    }
+
+                    const tokens = tokenString.split("");
+                    let invigCounter = 1;
+
+                    tokens.forEach(token => {
+                        if (token === "C") {
+                            if (shouldTruncate) {
+                                session.posts.push(createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
+                                session.posts.push(createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
+                            } else {
+                                session.posts.push(createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr));
+                            }
+                        } else if (token === "I") {
+                            const currentLabel = "Invigilator " + invigCounter;
+                            const currentKey = expandedSessionId + "-I_" + invigCounter;
+                            invigCounter++;
+
+                            if (shouldTruncate) {
+                                session.posts.push(createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
+                                session.posts.push(createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
+                            } else {
+                                session.posts.push(createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr));
+                            }
+                        } else if (token === "B") {
+                            session.posts.push(createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25, startTimeStr, endTimeStr));
+                        } else if (token === "E") {
+                            session.posts.push(createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25, startTimeStr, endTimeStr));
                         }
                     });
-                });
-            }
 
-            window.checkIsTeacherTimeConflicting = function(teacherName, dateStringKey, sessionStartStr, sessionEndStr) {
-                const teacher = staffRoster[teacherName];
-                if (!teacher || !teacher.dailyLockoutTokens) return false;
-                
-                const activeDayTokens = teacher.dailyLockoutTokens[dateStringKey];
-                if (!activeDayTokens) return false; 
-                
-                const toMins = (timeStr) => {
-                    const p = timeStr.split(":");
-                    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
-                };
-
-                const exStart = toMins(sessionStartStr);
-                const exEnd = toMins(sessionEndStr);
-
-                const blocks = [];
-                if (activeDayTokens.includes("A")) blocks.push({ s: toMins("08:00"), e: toMins("10:30") });
-                if (activeDayTokens.includes("B")) blocks.push({ s: toMins("10:30"), e: toMins("13:00") });
-                if (activeDayTokens.includes("C")) blocks.push({ s: toMins("13:00"), e: toMins("16:00") });
-
-                for (let b of blocks) {
-                    if (exStart < b.e && exEnd > b.s) {
-                        return true; 
-                    }
+                    sessionsData.push(session);
                 }
-                return false;
-            };
+            });
+        }
 
-            function buildRulesMemory(rows) {
-                const rulesMap = {};
-                rows.forEach(row => {
-                    const targetType = String(row["Target_Type"] || "").trim();
-                    const targetValue = String(row["Target_Value"] || "").trim();
-                    const condition = String(row["Constraint_Condition"] || "").trim();
-                    if (!targetType || !targetValue) return;
-
-                    if (!rulesMap[targetType]) rulesMap[targetType] = {};
-                    rulesMap[targetType][targetValue] = condition;
-                });
-                return rulesMap;
-            }
-
-            function processExamMasterTimeline(rows, rulesMap) {
-                sessionsData = [];
-                rows.forEach(row => {
-                    const sId = String(row["Session_ID"] || "").trim();
-                    if (!sId) return;
-
-                    const rawDateInput = cleanShorthandString(row["Date"]);
-                    if (!rawDateInput) return; 
-
-                    const dateString = parseMMDD(rawDateInput);
-                    const startTimeStr = parseHHMM(row["Start Time"]);
-                    const endTimeStr = parseHHMM(row["End Time"]);
-
-                    const calculatedDuration = calculateDurationFromStrings(startTimeStr, endTimeStr);
-                    let userDuration = String(row["Duration"] || "").trim();
-                    let rawDuration = calculatedDuration;
-                    let durationWarning = false;
-
-                    if (userDuration !== "") {
-                        userDuration = parseFloat(userDuration);
-                        if (Math.abs(userDuration - calculatedDuration) > 0.02) {
-                            durationWarning = true;
-                            rawDuration = userDuration;
-                        }
-                    }
-
-                    const formVal = String(row["Form"] || "").trim();
-                    const subjVal = String(row["Subject"] || "").trim();
-                    const venueVal = String(row["Venue"] || "").trim().toUpperCase();
-                    const tokenString = String(row["Posts Required"] || "").toUpperCase().trim();
-
-                    let appliedRule = "NONE";
-                    if (rulesMap["Session_ID"] && rulesMap["Session_ID"][sId]) appliedRule = rulesMap["Session_ID"][sId];
-                    else if (rulesMap["Subject"] && rulesMap["Subject"][subjVal]) appliedRule = rulesMap["Subject"][subjVal];
-                    else if (rulesMap["Form"] && rulesMap["Form"][formVal]) appliedRule = rulesMap["Form"][formVal];
-
-                    const isOwnClassroom = (venueVal === "OC");
-                    const roomLoopLimit = isOwnClassroom ? 5 : 1;
-
-                    for (let roomIdx = 1; roomIdx <= roomLoopLimit; roomIdx++) {
-                        const expandedSessionId = isOwnClassroom ? `${sId}-R${roomIdx}` : sId;
-                        const expandedVenueName = isOwnClassroom ? `OC (Classroom ${roomIdx})` : venueVal;
-
-                        const session = {
-                            id: expandedSessionId,
-                            baseSessionId: sId,
-                            rawDateKey: rawDateInput, 
-                            dateString: dateString,
-                            startTime: startTimeStr,
-                            endTime: endTimeStr,
-                            timeWindow: startTimeStr + " - " + endTimeStr,
-                            duration: rawDuration,
-                            durationWarning: durationWarning,
-                            form: formVal,
-                            subject: subjVal,
-                            venue: expandedVenueName,
-                            constraintRule: appliedRule,
-                            posts: []
-                        };
-
-                        const shouldTruncate = rawDuration > 2.0;
-                        let shiftADuration = 0;
-                        let shiftBDuration = 0;
-                        let shiftATimeWindow = "";
-                        let shiftBTimeWindow = "";
-
-                        if (shouldTruncate) {
-                            let targetSplit = Math.floor(rawDuration / 2 * 4) / 4;
-                            shiftADuration = Math.max(1.0, targetSplit);
-                            shiftBDuration = rawDuration - shiftADuration;
-
-                            if (shiftBDuration < 0.5) {
-                                shiftBDuration = 0.5;
-                                shiftADuration = rawDuration - shiftBDuration;
-                            }
-                            if (shiftADuration < 1.0) {
-                                shiftADuration = 1.0;
-                                shiftBDuration = Math.max(0.25, rawDuration - shiftADuration);
-                            }
-
-                            shiftATimeWindow = startTimeStr + " - " + addHoursToTime(startTimeStr, shiftADuration);
-                            shiftBTimeWindow = addHoursToTime(startTimeStr, shiftADuration) + " - " + endTimeStr;
-                        }
-
-                        const tokens = tokenString.split("");
-                        let invigCounter = 1;
-
-                        tokens.forEach(token => {
-                            if (token === "C") {
-                                if (shouldTruncate) {
-                                    session.posts.push(createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
-                                    session.posts.push(createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
-                                } else {
-                                    session.posts.push(createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr));
-                                }
-                            } else if (token === "I") {
-                                const currentLabel = "Invigilator " + invigCounter;
-                                const currentKey = expandedSessionId + "-I_" + invigCounter;
-                                invigCounter++;
-
-                                if (shouldTruncate) {
-                                    session.posts.push(createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration, startTimeStr, addHoursToTime(startTimeStr, shiftADuration)));
-                                    session.posts.push(createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration, addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
-                                } else {
-                                    session.posts.push(createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr));
-                                }
-                            } else if (token === "B") {
-                                session.posts.push(createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25, startTimeStr, endTimeStr));
-                            } else if (token === "E") {
-                                session.posts.push(createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25, startTimeStr, endTimeStr));
-                            }
-                        });
-
-                        sessionsData.push(session);
-                    }
-                });
-            }
-
-            function linkPreAssignments(rows) {
-                rows.forEach(row => {
-                    const targetSid = String(row["Session_ID"] || "").trim();
-                    const rawPostInput = String(row["Post"] || "").toUpperCase().trim();
-                    const assignedStaffName = String(row["StaffName"] || "").trim();
-                    
-                    if (!targetSid || !rawPostInput || !assignedStaffName) return;
-
-                    sessionsData.forEach(s => {
-                        if (s.baseSessionId === targetSid || s.id === targetSid) {
-                            for (let p of s.posts) {
-                                if (p.pinned) continue; 
-
-                                let matchFound = false;
-                                if (rawPostInput === "C" || rawPostInput.startsWith("CHIEF")) {
-                                    if (p.role.startsWith("Chief")) matchFound = true;
-                                } else if (rawPostInput === "I" || rawPostInput.startsWith("INVIG")) {
-                                    if (p.role.startsWith("Invigilator")) matchFound = true;
-                                } else if (rawPostInput === "B" || rawPostInput.startsWith("BEGIN")) {
-                                    if (p.role.startsWith("Beginner")) matchFound = true;
-                                } else if (rawPostInput === "E" || rawPostInput.startsWith("END")) {
-                                    if (p.role.startsWith("Ender")) matchFound = true;
-                                }
-
-                                if (matchFound) {
-                                    p.staff = assignedStaffName;
-                                    p.pinned = true; 
-
-                                    const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
-                                    const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
-                                    if (customStart && customEnd) {
-                                        p.time = customStart + " - " + customEnd;
-                                        p.startBounds = customStart;
-                                        p.endBounds = customEnd;
-                                    }
-                                    break; 
-                                }
-                            }
-                        }
-                    });
-                });
-            }
-
-            window.populateFilterDropdownOptions = function() {
-                const daySelect = document.getElementById("filter-day");
-                const formSelect = document.getElementById("filter-form");
+        function linkPreAssignments(rows) {
+            rows.forEach(row => {
+                const targetSid = String(row["Session_ID"] || "").trim();
+                const rawPostInput = String(row["Post"] || "").toUpperCase().trim();
+                const assignedStaffName = String(row["StaffName"] || "").trim();
                 
-                daySelect.innerHTML = `<option value="ALL">-- All Days --</option>`;
-                formSelect.innerHTML = `<option value="ALL">-- All Forms --</option>`;
-                
-                const uniqueDaysSet = new Set();
-                const uniqueFormsSet = new Set();
-                
+                if (!targetSid || !rawPostInput || !assignedStaffName) return;
+
                 sessionsData.forEach(s => {
-                    if (s.dateString) uniqueDaysSet.add(s.dateString);
-                    
-                    if (s.form) {
-                        const fClean = String(s.form).trim();
-                        if (fClean === "J") {
-                            uniqueFormsSet.add("1"); uniqueFormsSet.add("2");
-                        } else if (fClean === "S") {
-                            uniqueFormsSet.add("4"); uniqueFormsSet.add("5");
-                        } else {
-                            uniqueFormsSet.add(fClean);
+                    if (s.baseSessionId === targetSid || s.id === targetSid) {
+                        for (let p of s.posts) {
+                            if (p.pinned) continue; 
+
+                            let matchFound = false;
+                            if (rawPostInput === "C" || rawPostInput.startsWith("CHIEF")) {
+                                if (p.role.startsWith("Chief")) matchFound = true;
+                            } else if (rawPostInput === "I" || rawPostInput.startsWith("INVIG")) {
+                                if (p.role.startsWith("Invigilator")) matchFound = true;
+                            } else if (rawPostInput === "B" || rawPostInput.startsWith("BEGIN")) {
+                                if (p.role.startsWith("Beginner")) matchFound = true;
+                            } else if (rawPostInput === "E" || rawPostInput.startsWith("END")) {
+                                if (p.role.startsWith("Ender")) matchFound = true;
+                            }
+
+                            if (matchFound) {
+                                p.staff = assignedStaffName;
+                                p.pinned = true; 
+
+                                const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
+                                const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
+                                if (customStart && customEnd) {
+                                    p.time = customStart + " - " + customEnd;
+                                    p.startBounds = customStart;
+                                    p.endBounds = customEnd;
+                                }
+                                break; 
+                            }
                         }
                     }
                 });
-                
-                const sortedDays = [...uniqueDaysSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
-                sortedDays.forEach(day => {
-                    daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
-                });
-                
-                const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
-                sortedForms.forEach(form => {
-                    formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
-                });
-                
-                daySelect.value = activeDayFilter;
-                formSelect.value = activeFormFilter;
-            };
+            });
+        }
 
-            window.applyTableFilters = function() {
-                activeDayFilter = document.getElementById("filter-day").value;
-                activeFormFilter = document.getElementById("filter-form").value;
-                const allBtn = document.getElementById("btn-filter-all");
-                if (activeDayFilter === "ALL" && activeFormFilter === "ALL") {
-                    allBtn.className = "bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
-                } else {
-                    allBtn.className = "bg-slate-200 text-slate-700 hover:bg-slate-300 font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
+        window.populateFilterDropdownOptions = function() {
+            const daySelect = document.getElementById("filter-day");
+            const formSelect = document.getElementById("filter-form");
+            if (!daySelect || !formSelect) return;
+            
+            daySelect.innerHTML = `<option value="ALL">-- All Days --</option>`;
+            formSelect.innerHTML = `<option value="ALL">-- All Forms --</option>`;
+            
+            const uniqueDaysSet = new Set();
+            const uniqueFormsSet = new Set();
+            
+            sessionsData.forEach(s => {
+                if (s.dateString) uniqueDaysSet.add(s.dateString);
+                
+                if (s.form) {
+                    const fClean = String(s.form).trim();
+                    if (fClean === "J") {
+                        uniqueFormsSet.add("1"); uniqueFormsSet.add("2");
+                    } else if (fClean === "S") {
+                        uniqueFormsSet.add("4"); uniqueFormsSet.add("5");
+                    } else {
+                        uniqueFormsSet.add(fClean);
+                    }
                 }
-                drawGridCanvas();
-            };
+            });
+            
+            const sortedDays = [...uniqueDaysSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
+            sortedDays.forEach(day => {
+                daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
+            });
+            
+            const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
+            sortedForms.forEach(form => {
+                formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
+            });
+            
+            daySelect.value = activeDayFilter;
+            formSelect.value = activeFormFilter;
+        };
 
-            window.clearTableFilters = function() {
-                activeDayFilter = "ALL"; activeFormFilter = "ALL";
-                document.getElementById("filter-day").value = "ALL";
-                document.getElementById("filter-form").value = "ALL";
-                document.getElementById("btn-filter-all").className = "bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
-                drawGridCanvas();
-            };
+        window.applyTableFilters = function() {
+            activeDayFilter = document.getElementById("filter-day").value;
+            activeFormFilter = document.getElementById("filter-form").value;
+            const allBtn = document.getElementById("btn-filter-all");
+            if (activeDayFilter === "ALL" && activeFormFilter === "ALL") {
+                if (allBtn) allBtn.className = "bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
+            } else {
+                if (allBtn) allBtn.className = "bg-slate-200 text-slate-700 hover:bg-slate-300 font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
+            }
+            drawGridCanvas();
+        };
 
-            window.exportWorkspaceJSON = function() {
-                if (sessionsData.length === 0) return alert("Workspace database data currently unpopulated.");
-                const backupPackage = { 
-                    staffRoster: staffRoster, 
-                    staffOrderSequence: staffOrderSequence, 
-                    sessionsData: sessionsData, 
-                    savedAt: new Date().toISOString() 
-                };
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPackage));
-                const dlAnchor = document.createElement('a');
-                dlAnchor.setAttribute("href", dataStr);
-                dlAnchor.setAttribute("download", `scheduler_progress_backup.json`);
-                document.body.appendChild(dlAnchor); dlAnchor.click(); dlAnchor.remove();
-            };
+        window.clearTableFilters = function() {
+            activeDayFilter = "ALL"; activeFormFilter = "ALL";
+            const daySel = document.getElementById("filter-day");
+            const formSel = document.getElementById("filter-form");
+            if (daySel) daySel.value = "ALL";
+            if (formSel) formSel.value = "ALL";
+            const allBtn = document.getElementById("btn-filter-all");
+            if (allBtn) allBtn.className = "bg-slate-900 text-white font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors";
+            drawGridCanvas();
+        };
 
-            window.importWorkspaceJSON = function(event) {
-                const file = event.target.files[0]; if (!file) return;
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const importedData = JSON.parse(e.target.result);
-                        if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid schema template backup.");
+        window.exportWorkspaceJSON = function() {
+            if (sessionsData.length === 0) return alert("Workspace database data currently unpopulated.");
+            const backupPackage = { 
+                staffRoster: staffRoster, 
+                staffOrderSequence: staffOrderSequence, 
+                sessionsData: sessionsData, 
+                savedAt: new Date().toISOString() 
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupPackage));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `scheduler_progress_backup.json`);
+            document.body.appendChild(dlAnchor); dlAnchor.click(); dlAnchor.remove();
+        };
+
+        window.importWorkspaceJSON = function(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (!importedData.staffRoster || !importedData.sessionsData) throw new Error("Invalid schema tracking attributes.");
+                    
+                    staffRoster = importedData.staffRoster; 
+                    sessionsData = importedData.sessionsData;
+                    staffOrderSequence = importedData.staffOrderSequence || Object.keys(staffRoster);
+                    
+                    populateFilterDropdownOptions(); 
+                    refreshAppPipeline();
+                    fireToast("Interactive board state restored perfectly from JSON backup! ✓");
+                } catch (err) { alert("File parsing error:\n" + err.message); }
+            };
+            reader.readAsText(file); event.target.value = '';
+        };
+
+        window.runAutoScheduler = function() {
+            if (sessionsData.length === 0) return alert("Please upload an Excel workbook before running allocation sweeps!");
+            const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
+            const MAX_ATTEMPTS = 500; let finalVariance = 99.0; let success = false;
+
+            for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+                sessionsData.forEach(session => {
+                    session.posts.forEach(post => { if (!post.pinned) post.staff = null; });
+                });
+                let chronologicalSessions = [...sessionsData];
+                if (attempt > 1) { chronologicalSessions.sort(() => Math.random() - 0.5); }
+                else { chronologicalSessions = sortSessionsChronologically(chronologicalSessions); }
+                let brokenSlotDetected = false;
+
+                for (let session of chronologicalSessions) {
+                    for (let post of session.posts) {
+                        if (post.staff) continue;
+                        computeOperationalHours();
                         
-                        staffRoster = importedData.staffRoster; 
-                        sessionsData = importedData.sessionsData;
-                        staffOrderSequence = importedData.staffOrderSequence || Object.keys(staffRoster);
-                        
-                        populateFilterDropdownOptions(); 
-                        refreshAppPipeline();
-                        fireToast("Interactive board state restored perfectly from JSON backup! ✓");
-                    } catch (err) { alert("File parsing error:\n" + err.message); }
-                };
-                reader.readAsText(file); event.target.value = '';
-            };
-
-            window.runAutoScheduler = function() {
-                if (sessionsData.length === 0) return alert("Please upload an Excel workbook before running allocation sweeps!");
-                const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
-                const MAX_ATTEMPTS = 500; let finalVariance = 99.0; let success = false;
-
-                for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-                    sessionsData.forEach(session => {
-                        session.posts.forEach(post => { if (!post.pinned) post.staff = null; });
-                    });
-                    let chronologicalSessions = [...sessionsData];
-                    if (attempt > 1) { chronologicalSessions.sort(() => Math.random() - 0.5); }
-                    else { chronologicalSessions = sortSessionsChronologically(chronologicalSessions); }
-                    let brokenSlotDetected = false;
-
-                    for (let session of chronologicalSessions) {
-                        for (let post of session.posts) {
-                            if (post.staff) continue;
-                            computeOperationalHours();
+                        let basePool = Object.keys(staffRoster).filter(tName => {
+                            const t = staffRoster[tName];
                             
-                            let basePool = Object.keys(staffRoster).filter(tName => {
-                                const t = staffRoster[tName];
-                                
-                                if (checkIsTeacherTimeConflicting(tName, session.rawDateKey, post.startBounds, post.endBounds)) return false;
-                                if (t.dailyDuties && t.dailyDuties[session.dateString] >= 1) return false;
-                                
-                                if (session.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return false;
-                                if (session.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return false;
-                                if (session.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return false;
-                                return true;
-                            });
+                            if (checkIsTeacherTimeConflicting(tName, session.rawDateKey, post.startBounds, post.endBounds)) return false;
+                            if (t.dailyDuties && t.dailyDuties[session.dateString] >= 1) return false;
+                            
+                            if (session.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return false;
+                            if (session.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return false;
+                            if (session.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return false;
+                            return true;
+                        });
 
                         if (basePool.length === 0) { brokenSlotDetected = true; break; }
 
@@ -786,370 +787,386 @@
                 }
             }
             if (!success) { alert(`⚠️ Hard Variance Target Unreached:\nCould not complete layout under your selected ${allowedVarianceWindow.toFixed(2)}h variance ceiling limit.\n(Best execution spread: ${finalVariance.toFixed(2)}h).`); }
-            else { fireToast(`Auto-scheduling completed within variance parameters limit! ✓`); }
+            else { fireToast("Auto-scheduling completed within variance parameters limit! ✓"); }
             refreshAppPipeline();
         };
 
-            function computeOperationalHours() {
-                Object.keys(staffRoster).forEach(name => {
-                    staffRoster[name].totalHours = staffRoster[name].extraHours; staffRoster[name].dailyDuties = {};
+        function computeOperationalHours() {
+            Object.keys(staffRoster).forEach(name => {
+                staffRoster[name].totalHours = staffRoster[name].extraHours; staffRoster[name].dailyDuties = {};
+            });
+            sessionsData.forEach(session => {
+                session.posts.forEach(post => {
+                    if (post.staff && staffRoster[post.staff]) {
+                        staffRoster[post.staff].totalHours += post.weight;
+                        if (!staffRoster[post.staff].dailyDuties[session.dateString]) staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                        staffRoster[post.staff].dailyDuties[session.dateString]++;
+                    }
                 });
+            });
+        }
+
+        window.drawRosterSidebar = function() {
+            const container = document.getElementById("roster-box"); 
+            if (!container) return;
+            container.innerHTML = "";
+            
+            const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
+            const balanceHours = Object.values(staffRoster).map(t => t.totalHours);
+            
+            if (balanceHours.length > 0) {
+                const max = Math.max(...balanceHours); const min = Math.min(...balanceHours); const variance = max - min;
+                const readout = document.getElementById("variance-readout"); const progress = document.getElementById("variance-progress-bar");
+                if (readout && progress) {
+                    readout.innerText = `${variance.toFixed(2)}h`;
+                    if (variance > allowedVarianceWindow) {
+                        readout.className = "text-rose-600 font-bold text-sm font-mono"; progress.className = "bg-rose-500 h-1.5 transition-all duration-300"; progress.style.width = "100%";
+                    } else {
+                        readout.className = "text-emerald-600 font-bold text-sm font-mono"; progress.className = "bg-emerald-500 h-1.5 transition-all duration-300"; progress.style.width = `${(variance / allowedVarianceWindow) * 100}%`;
+                    }
+                }
+            }
+
+            staffOrderSequence.forEach((name) => {
+                const data = staffRoster[name];
+                if (!data) return;
+
+                const block = document.createElement("div");
+                block.className = "bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg text-xs flex justify-between items-center hover:border-blue-400 transition-all cursor-grab active:cursor-grabbing group shadow-2xs";
+                let badges = "";
+                if (data.isDiscipline) badges += `<span class="bg-purple-100 text-purple-700 text-[8px] font-extrabold px-1 rounded">DISC</span>`;
+                if (data.isChinese) badges += `<span class="bg-orange-100 text-orange-700 text-[8px] font-extrabold px-1 rounded">CHI</span>`;
+                if (data.isEnglish) badges += `<span class="bg-blue-100 text-blue-700 text-[8px] font-extrabold px-1 rounded">ENG</span>`;
+                if (data.isMaths) badges += `<span class="bg-teal-100 text-teal-700 text-[8px] font-extrabold px-1 rounded">MATH</span>`;
+
+                block.innerHTML = `<div class="flex flex-col gap-0.5 max-w-[180px] truncate"><span class="font-bold text-slate-700 group-hover:text-blue-600 transition-colors truncate">${name}</span><div class="flex flex-wrap gap-0.5">${badges}</div></div><span class="font-mono font-bold bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">${data.totalHours.toFixed(2)}h</span>`;
+                block.draggable = true; block.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", name));
+                container.appendChild(block);
+            });
+        };
+
+        window.drawGridCanvas = function() {
+            const tbody = document.getElementById("table-canvas-body"); 
+            if (!tbody) return;
+            tbody.innerHTML = "";
+            if (sessionsData.length === 0) return;
+
+            const filteredSessions = sessionsData.filter(session => {
+                if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
+                
+                if (activeFormFilter !== "ALL") {
+                    const sessionForm = String(session.form).trim();
+                    const selectedForm = String(activeFormFilter).trim();
+                    
+                    if (sessionForm !== selectedForm) {
+                        if (selectedForm === "1" || selectedForm === "2") {
+                            if (sessionForm !== "J") return false;
+                        } else if (selectedForm === "4" || selectedForm === "5") {
+                            if (sessionForm !== "S") return false;
+                        } else {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            });
+
+            if (filteredSessions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-slate-400 italic">No matches found.</td></tr>`; return;
+            }
+
+            const displayedSessions = sortSessionsChronologically([...filteredSessions]);
+
+            displayedSessions.forEach((session) => {
+                const totalPostRowsCount = session.posts.length;
+                session.posts.forEach((post, pIdx) => {
+                    const rowTr = document.createElement("tr");
+                    rowTr.className = "hover:bg-slate-50/80 transition-colors h-9 text-[11px] font-medium text-slate-600";
+                    if (session.constraintRule && session.constraintRule !== "NONE") { rowTr.classList.add("bg-blue-50/20"); }
+
+                    let structuralCellsBundleHTML = "";
+                    if (pIdx === 0) {
+                        let lockBadge = "";
+                        if (session.constraintRule === "ONLY_CHINESE_TEACHERS") lockBadge = `<div class="text-[8px] text-orange-600 font-bold bg-orange-50 border border-orange-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">CHI Required</div>`;
+                        if (session.constraintRule === "ONLY_ENGLISH_TEACHERS") lockBadge = `<div class="text-[8px] text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">ENG Required</div>`;
+                        if (session.constraintRule === "ONLY_MATHS_TEACHERS")   lockBadge = `<div class="text-[8px] text-teal-600 font-bold bg-teal-50 border border-teal-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">MATH Required</div>`;
+
+                        let durationDisplayBlock = `<span class="text-slate-500 font-bold">(${session.duration.toFixed(2)}h)</span>`;
+                        if (session.durationWarning) {
+                          durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Cross-check mismatch! Check Excel Master tab values row alignment.">⚠️ ${session.duration.toFixed(2)}h</span>`;
+                        }
+
+                        structuralCellsBundleHTML = `
+                            <td class="w-[6%] pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white truncate" rowspan="${totalPostRowsCount}">${session.id}</td>
+                            <td class="w-[8%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.startTime}</td>
+                            <td class="w-[4%] border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700 truncate" rowspan="${totalPostRowsCount}">${session.form}</td>
+                            <td class="w-[16%] border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.subject}<br>${lockBadge}</td>
+                            <td class="w-[14%] border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
+                            <td class="w-[13%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate" rowspan="${totalPostRowsCount}">${session.timeWindow}<br>${durationDisplayBlock}</td>
+                        `;
+                    }
+
+                    rowTr.innerHTML = `
+                        ${structuralCellsBundleHTML}
+                        <td class="w-[13%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate">${post.role}</td>
+                        <td class="w-[10%] border-r border-slate-200 px-2 font-mono text-slate-400 align-middle truncate">${post.time}<br><span class="text-slate-500 font-bold">(${post.weight.toFixed(2)}h)</span></td>
+                        <td class="w-[16%] pr-4 pl-2 align-middle">
+                            <div class="dropzone border border-dashed border-slate-300 rounded-lg h-7 bg-white flex items-center justify-center relative transition-all w-full" data-sid="${session.id}" data-key="${post.key}">
+                                 ${post.staff ? `
+                                    <div class="absolute inset-0 bg-blue-50 text-blue-900 px-2 flex items-center justify-between font-bold border border-blue-200 rounded-lg text-[11px] overflow-hidden ${post.pinned ? 'pinned-card' : ''}">
+                                        <span class="truncate pr-1">👤 ${post.staff}</span>
+                                        <div class="flex items-center gap-1 shrink-0 bg-blue-50 pl-1">
+                                            ${post.pinned ? `<span class="text-[8px] bg-slate-200 text-slate-400 font-black px-1 rounded tracking-tighter">PIN</span>` : `<button onclick="clearVacancy('${session.id}','${post.key}')" class="text-slate-400 hover:text-red-500 font-black text-xs cursor-pointer px-0.5">×</button>`}
+                                        </div>
+                                    </div>
+                                 ` : `<span class="text-[9px] text-slate-300 italic select-none pointer-events-none">Empty Vacancy</span>`}
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(rowTr);
+
+                    const zone = rowTr.querySelector(".dropzone");
+                    if (zone && !post.staff) {
+                        zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("drag-over"); });
+                        zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+                        zone.addEventListener("drop", (e) => {
+                            e.preventDefault(); zone.classList.remove("drag-over");
+                            commitDropAssignment(e.dataTransfer.getData("text/plain"), session.id, post.key);
+                        });
+                    }
+                });
+            });
+        };
+
+        window.commitDropAssignment = function(teacherName, sessionId, postKey) {
+            const s = sessionsData.find(x => x.id === sessionId); const p = s.posts.find(y => y.key === postKey); const t = staffRoster[teacherName];
+            
+            if (checkIsTeacherTimeConflicting(teacherName, s.rawDateKey, p.startBounds, p.endBounds)) {
+                return fireToast(`Conflict: ${teacherName} overlaps an unavailable block window on this day.`);
+            }
+            if (t.dailyDuties[s.dateString] >= 1) return fireToast(`Conflict: ${teacherName} already assigned on: ${s.dateString}`);
+            if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return fireToast(`Rule Violation: Chinese Teacher lock.`);
+            if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return fireToast(`Rule Violation: English Teacher lock.`);
+            if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return fireToast(`Rule Violation: Maths Teacher lock.`);
+            p.staff = teacherName; refreshAppPipeline();
+        };
+
+        window.clearVacancy = function(sessionId, postKey) {
+            sessionsData.find(x => x.id === sessionId).posts.find(y => y.key === postKey).staff = null; refreshAppPipeline();
+        };
+
+        window.fireToast = function(msg) {
+            const el = document.getElementById("toast"); 
+            const txt = document.getElementById("toast-txt");
+            if (!el || !txt) return;
+            txt.innerText = msg;
+            el.className = el.className.replace("translate-y-20 opacity-0", "translate-y-0 opacity-100");
+            setTimeout(() => { el.className = el.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0"); }, 4000);
+        };
+
+        window.refreshAppPipeline = function() { computeOperationalHours(); drawRosterSidebar(); drawGridCanvas(); };
+
+        window.downloadMasterGridReport = function() {
+            if (sessionsData.length === 0) return alert("No active calendar records loaded.");
+            const dayTrackerSet = new Set(); sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
+            const chronologicalTimelineColumns = [...dayTrackerSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + ',"Special duty"\n';
+
+            const sortedStaffNamesList = [...staffOrderSequence];
+            sortedStaffNamesList.forEach((teacherName, index) => {
+                const tData = staffRoster[teacherName]; const cleanRowIndex = index + 1;
+                const columnsMapData = {}; chronologicalTimelineColumns.forEach(d => { columnsMapData[d] = []; });
+
                 sessionsData.forEach(session => {
                     session.posts.forEach(post => {
-                        if (post.staff && staffRoster[post.staff]) {
-                            staffRoster[post.staff].totalHours += post.weight;
-                            if (!staffRoster[post.staff].dailyDuties[session.dateString]) staffRoster[post.staff].dailyDuties[session.dateString] = 0;
-                            staffRoster[post.staff].dailyDuties[session.dateString]++;
+                        if (post.staff === teacherName) {
+                            let currentFormStringCode = session.form;
+                            if (currentFormStringCode === "4" || currentFormStringCode === "5" || currentFormStringCode === "S") { currentFormStringCode = "S"; }
+                            columnsMapData[session.dateString].push(`${post.weight}S${currentFormStringCode}`);
                         }
+                    });
+                });
+
+                const activeLineCellsBundleCSV = chronologicalTimelineColumns.map(date => {
+                    const dynamicDayDutiesArrayList = columnsMapData[date] || [];
+                    return dynamicDayDutiesArrayList.length > 0 ? `"${dynamicDayDutiesArrayList.join(" ")}"` : '""';
+                });
+
+                let specialDutyAuditCell = '""';
+                if (tData.isDiscipline) { specialDutyAuditCell = '"1X"'; }
+
+                csvContent += `"${cleanRowIndex}","${teacherName}","${tData.totalHours.toFixed(2)}",` + activeLineCellsBundleCSV.join(",") + "," + specialDutyAuditCell + "\n";
+            });
+
+            const matrixDownloadAnchor = document.createElement("a");
+            matrixDownloadAnchor.setAttribute("href", encodeURI(csvContent));
+            matrixDownloadAnchor.setAttribute("download", `master_faculty_invigilation_timeline_matrix.csv`);
+            document.body.appendChild(matrixDownloadAnchor); matrixDownloadAnchor.click(); matrixDownloadAnchor.remove();
+            fireToast("Master grid matrix layout compiled with special duty audit rules! ✓");
+        };
+
+        // --- FIXED VECTOR PDF COMPILATION ENGINE: STRIPPED ALL OKLCH CSS DEPENDENCIES ---
+        window.downloadLandscapePDFDocument = function() {
+            if (sessionsData.length === 0) return alert("Please parse dataset entries before running vector layout prints.");
+            
+            const printVaultNode = document.getElementById("pdf-printing-vault-node");
+            if (!printVaultNode) return;
+            printVaultNode.innerHTML = ""; 
+
+            const distinctFormsFound = new Set();
+            sessionsData.forEach(s => {
+                if (s.form) {
+                    const cleanF = String(s.form).trim();
+                    if (cleanF === "J") { distinctFormsFound.add("1"); distinctFormsFound.add("2"); }
+                    else if (cleanF === "S") { distinctFormsFound.add("4"); distinctFormsFound.add("5"); }
+                    else { distinctFormsFound.add(cleanF); }
+                }
+            });
+            const sortedFormsChronologicalList = [...distinctFormsFound].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+
+            sortedFormsChronologicalList.forEach((formLevel, fIdx) => {
+                const multiPageBreakWrapper = document.createElement("div");
+                if (fIdx > 0) multiPageBreakWrapper.className = "pdf-page-break";
+                multiPageBreakWrapper.style.paddingTop = "20px";
+
+                multiPageBreakWrapper.innerHTML = `
+                    <h2 style="font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 12px; font-family: Arial, sans-serif;">
+                        Exam invigilation timetable for S${formLevel}
+                    </h2>
+                `;
+
+                const formMatchingSessions = sessionsData.filter(s => {
+                    const sf = String(s.form).trim();
+                    if (sf === formLevel) return true;
+                    if (sf === "J" && (formLevel === "1" || formLevel === "2")) return true;
+                    if (sf === "S" && (formLevel === "4" || formLevel === "5")) return true;
+                    return false;
+                });
+
+                const orderedTimelineList = sortSessionsChronologically([...formMatchingSessions]);
+
+                const tableElement = document.createElement("table");
+                tableElement.style.width = "100%";
+                tableElement.style.borderCollapse = "collapse";
+                tableElement.style.fontSize = "10px";
+                tableElement.style.fontFamily = "Arial, sans-serif";
+                tableElement.style.marginBottom = "30px";
+
+                tableElement.innerHTML = `
+                    <thead>
+                        <tr style="background-color: #0f172a; color: #ffffff; text-transform: uppercase; height: 30px;">
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 8%;">Session</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 10%;">Date/Blk</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; width: 5%;">Form</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 18%;">Subject Title</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 15%;">Venue Location</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 13%;">Exam Time</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 13%;">Required Post</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 8%;">Weight</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; width: 12%;">Assigned Staff</th>
+                        </tr>
+                    </thead>
+                `;
+
+                const tableBodyNode = document.createElement("tbody");
+
+                orderedTimelineList.forEach(session => {
+                    const totalPostRowsCount = session.posts.length;
+                    
+                    session.posts.forEach((post, pIdx) => {
+                        const tr = document.createElement("tr");
+                        tr.style.height = "26px";
+                        
+                        // Hard fallback colors to stay independent of Tailwind v4 oklch spaces
+                        if (session.constraintRule && session.constraintRule !== "NONE") {
+                            tr.style.backgroundColor = "#f0fdf4"; 
+                        } else {
+                            tr.style.backgroundColor = "#ffffff";
+                        }
+
+                        let leadingCellsHTML = "";
+                        if (pIdx === 0) {
+                            leadingCellsHTML = `
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold; color: #0f172a;">${session.id}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; color: #475569;">${session.dateString}<br>Blk ${session.startTime}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-weight: bold; color: #0f172a;">${session.form}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #0f172a;">${session.subject}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; color: #334155;">${session.venue}</td>
+                                <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #334155;">${session.venue.includes("OC") ? "Global Block" : session.timeWindow}</td>
+                            `;
+                        }
+
+                        tr.innerHTML = `
+                            ${leadingCellsHTML}
+                            <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #334155;">${post.role}</td>
+                            <td style="border: 1px solid #cbd5e1; padding: 6px; color: #475569; font-family: monospace;">${post.weight.toFixed(2)}h</td>
+                            <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: ${post.staff ? '#1e3a8a' : '#b91c1c'};">
+                                ${post.staff ? `👤 ${post.staff}` : 'UNASSIGNED'}
+                            </td>
+                        `;
+                        tableBodyNode.appendChild(tr);
+                    });
+                });
+
+                tableElement.appendChild(tableBodyNode);
+                multiPageBreakWrapper.appendChild(tableElement);
+                printVaultNode.appendChild(multiPageBreakWrapper);
+            });
+
+            const captureConfigurationMap = {
+                margin:       [0.4, 0.4, 0.4, 0.4],
+                filename:     'official_school_exam_invigilation_timetable.pdf',
+                image:        { type: 'jpeg', quality: 1.0 },
+                html2canvas:  { scale: 2.0, useCORS: true, logging: false },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+            };
+
+            html2pdf().set(captureConfigurationMap).from(printVaultNode).toContainer().toCanvas().toPdf().save().then(() => {
+                fireToast("Landscape document compiled into high-density PDF successfully! ✓");
+            }).catch(err => {
+                console.error("PDF Engine Crash Logs:", err);
+                alert("Print engine failure: " + err.message);
+            });
+        };
+
+        window.downloadReport = function(reportType) {
+            if (sessionsData.length === 0) return alert("No active calendar records available.");
+            let csv = "data:text/csv;charset=utf-8,";
+            if (reportType === 'form') {
+                csv += "Form,Date,Time Window,Subject,Venue,Required Post Character Role,Assigned Staff Name\n";
+                const sorted = [...sessionsData].sort((a, b) => {
+                    const formComp = String(a.form).localeCompare(String(b.form), undefined, {numeric: true}); if (formComp !== 0) return formComp;
+                    const dateComp = getDateSortWeight(a.dateString) - getDateSortWeight(b.dateString); if (dateComp !== 0) return dateComp;
+                    return getTimeSortWeight(a.timeWindow) - getTimeSortWeight(b.timeWindow);
+                });
+                sorted.forEach(s => {
+                    s.posts.forEach(p => { csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`; });
+                });
+            } else {
+                csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
+                
+                staffOrderSequence.forEach(tName => {
+                    const teacherDuties = [];
+                    sessionsData.forEach(s => { s.posts.forEach(p => { if (p.staff === tName) teacherDuties.push({ session: s, post: p }); }); });
+                    teacherDuties.sort((a, b) => {
+                        const dateComp = getDateSortWeight(a.session.dateString) - getDateSortWeight(b.session.dateString); if (dateComp !== 0) return dateComp;
+                        return getTimeSortWeight(a.session.timeWindow) - getTimeSortWeight(b.session.timeWindow);
+                    });
+                    teacherDuties.forEach(item => {
+                        csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
                     });
                 });
             }
+            const downloadAnchor = document.createElement("a"); downloadAnchor.setAttribute("href", encodeURI(csv));
+            downloadAnchor.setAttribute("download", `school_exam_timetable_report_sorted_by_${reportType}.csv`);
+            document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
+        };
 
-            window.drawRosterSidebar = function() {
-                const container = document.getElementById("roster-box"); 
-                if (!container) return;
-                container.innerHTML = "";
-                
-                const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
-                const balanceHours = Object.values(staffRoster).map(t => t.totalHours);
-                
-                if (balanceHours.length > 0) {
-                    const max = Math.max(...balanceHours); const min = Math.min(...balanceHours); const variance = max - min;
-                    const readout = document.getElementById("variance-readout"); const progress = document.getElementById("variance-progress-bar");
-                    if (readout && progress) {
-                        readout.innerText = `${variance.toFixed(2)}h`;
-                        if (variance > allowedVarianceWindow) {
-                            readout.className = "text-rose-600 font-bold text-sm font-mono"; progress.className = "bg-rose-500 h-1.5 transition-all duration-300"; progress.style.width = "100%";
-                        } else {
-                            readout.className = "text-emerald-600 font-bold text-sm font-mono"; progress.className = "bg-emerald-500 h-1.5 transition-all duration-300"; progress.style.width = `${(variance / allowedVarianceWindow) * 100}%`;
-                        }
-                    }
-                }
-
-                staffOrderSequence.forEach((name) => {
-                    const data = staffRoster[name];
-                    if (!data) return;
-
-                    const block = document.createElement("div");
-                    block.className = "bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg text-xs flex justify-between items-center hover:border-blue-400 transition-all cursor-grab active:cursor-grabbing group shadow-2xs";
-                    let badges = "";
-                    if (data.isDiscipline) badges += `<span class="bg-purple-100 text-purple-700 text-[8px] font-extrabold px-1 rounded">DISC</span>`;
-                    if (data.isChinese) badges += `<span class="bg-orange-100 text-orange-700 text-[8px] font-extrabold px-1 rounded">CHI</span>`;
-                    if (data.isEnglish) badges += `<span class="bg-blue-100 text-blue-700 text-[8px] font-extrabold px-1 rounded">ENG</span>`;
-                    if (data.isMaths) badges += `<span class="bg-teal-100 text-teal-700 text-[8px] font-extrabold px-1 rounded">MATH</span>`;
-
-                    block.innerHTML = `<div class="flex flex-col gap-0.5 max-w-[180px] truncate"><span class="font-bold text-slate-700 group-hover:text-blue-600 transition-colors truncate">${name}</span><div class="flex flex-wrap gap-0.5">${badges}</div></div><span class="font-mono font-bold bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">${data.totalHours.toFixed(2)}h</span>`;
-                    block.draggable = true; block.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", name));
-                    container.appendChild(block);
-                });
-            };
-
-            window.drawGridCanvas = function() {
-                const tbody = document.getElementById("table-canvas-body"); tbody.innerHTML = "";
-                if (sessionsData.length === 0) return;
-
-                const filteredSessions = sessionsData.filter(session => {
-                    if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
-                    
-                    if (activeFormFilter !== "ALL") {
-                        const sessionForm = String(session.form).trim();
-                        const selectedForm = String(activeFormFilter).trim();
-                        
-                        if (sessionForm !== selectedForm) {
-                            if (selectedForm === "1" || selectedForm === "2") {
-                                if (sessionForm !== "J") return false;
-                            } else if (selectedForm === "4" || selectedForm === "5") {
-                                if (sessionForm !== "S") return false;
-                            } else {
-                                return false;
-                            }
-                        }
-                    }
-                    return true;
-                });
-
-                if (filteredSessions.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-slate-400 italic">No matches found.</td></tr>`; return;
-                }
-
-                const displayedSessions = sortSessionsChronologically([...filteredSessions]);
-
-                displayedSessions.forEach((session) => {
-                    const totalPostRowsCount = session.posts.length;
-                    session.posts.forEach((post, pIdx) => {
-                        const rowTr = document.createElement("tr");
-                        rowTr.className = "hover:bg-slate-50/80 transition-colors h-9 text-[11px] font-medium text-slate-600";
-                        if (session.constraintRule && session.constraintRule !== "NONE") { rowTr.classList.add("bg-blue-50/20"); }
-
-                        let structuralCellsBundleHTML = "";
-                        if (pIdx === 0) {
-                            let lockBadge = "";
-                            if (session.constraintRule === "ONLY_CHINESE_TEACHERS") lockBadge = `<div class="text-[8px] text-orange-600 font-bold bg-orange-50 border border-orange-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">CHI Required</div>`;
-                            if (session.constraintRule === "ONLY_ENGLISH_TEACHERS") lockBadge = `<div class="text-[8px] text-blue-600 font-bold bg-blue-50 border border-blue-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">ENG Required</div>`;
-                            if (session.constraintRule === "ONLY_MATHS_TEACHERS")   lockBadge = `<div class="text-[8px] text-teal-600 font-bold bg-teal-50 border border-teal-200 rounded px-1 mt-0.5 inline-block truncate max-w-full">MATH Required</div>`;
-
-                            let durationDisplayBlock = `<span class="text-slate-500 font-bold">(${session.duration.toFixed(2)}h)</span>`;
-                            if (session.durationWarning) {
-                              durationDisplayBlock = `<span class="bg-amber-100 text-amber-800 font-black border border-amber-300 rounded px-1 py-0.5 animate-pulse" title="Cross-check mismatch! Check Excel Master tab values row alignment.">⚠️ ${session.duration.toFixed(2)}h</span>`;
-                            }
-
-                            structuralCellsBundleHTML = `
-                                <td class="w-[6%] pl-4 border-r border-slate-200 font-mono font-bold text-slate-800 align-middle bg-white truncate" rowspan="${totalPostRowsCount}">${session.id}</td>
-                                <td class="w-[8%] border-r border-slate-200 font-semibold align-middle bg-white text-slate-500 leading-tight truncate" rowspan="${totalPostRowsCount}">${session.dateString}<br>Block ${session.startTime}</td>
-                                <td class="w-[4%] border-r border-slate-200 font-bold text-center align-middle bg-white text-slate-700 truncate" rowspan="${totalPostRowsCount}">${session.form}</td>
-                                <td class="w-[16%] border-r border-slate-200 px-2 font-bold text-slate-900 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.subject}<br>${lockBadge}</td>
-                                <td class="w-[14%] border-r border-slate-200 px-2 font-semibold text-slate-600 align-middle bg-white max-w-xs truncate leading-tight" rowspan="${totalPostRowsCount}">${session.venue}</td>
-                                <td class="w-[13%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate" rowspan="${totalPostRowsCount}">${session.timeWindow}<br>${durationDisplayBlock}</td>
-                            `;
-                        }
-
-                        rowTr.innerHTML = `
-                            ${structuralCellsBundleHTML}
-                            <td class="w-[13%] border-r border-slate-200 px-2 font-bold text-slate-700 align-middle truncate">${post.role}</td>
-                            <td class="w-[10%] border-r border-slate-200 px-2 font-mono text-slate-400 align-middle truncate">${post.time}<br><span class="text-slate-500 font-bold">(${post.weight.toFixed(2)}h)</span></td>
-                            <td class="w-[16%] pr-4 pl-2 align-middle">
-                                <div class="dropzone border border-dashed border-slate-300 rounded-lg h-7 bg-white flex items-center justify-center relative transition-all w-full" data-sid="${session.id}" data-key="${post.key}">
-                                     ${post.staff ? `
-                                        <div class="absolute inset-0 bg-blue-50 text-blue-900 px-2 flex items-center justify-between font-bold border border-blue-200 rounded-lg text-[11px] overflow-hidden ${post.pinned ? 'pinned-card' : ''}">
-                                            <span class="truncate pr-1">👤 ${post.staff}</span>
-                                            <div class="flex items-center gap-1 shrink-0 bg-blue-50 pl-1">
-                                                ${post.pinned ? `<span class="text-[8px] bg-slate-200 text-slate-400 font-black px-1 rounded tracking-tighter">PIN</span>` : `<button onclick="clearVacancy('${session.id}','${post.key}')" class="text-slate-400 hover:text-red-500 font-black text-xs cursor-pointer px-0.5">×</button>`}
-                                            </div>
-                                        </div>
-                                     ` : `<span class="text-[9px] text-slate-300 italic select-none pointer-events-none">Empty Vacancy</span>`}
-                                </div>
-                            </td>
-                        `;
-                        tbody.appendChild(rowTr);
-
-                        const zone = rowTr.querySelector(".dropzone");
-                        if (!post.staff) {
-                            zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("drag-over"); });
-                            zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
-                            zone.addEventListener("drop", (e) => {
-                                e.preventDefault(); zone.classList.remove("drag-over");
-                                commitDropAssignment(e.dataTransfer.getData("text/plain"), session.id, post.key);
-                            });
-                        }
-                    });
-                });
-            };
-
-            window.commitDropAssignment = function(teacherName, sessionId, postKey) {
-                const s = sessionsData.find(x => x.id === sessionId); const p = s.posts.find(y => y.key === postKey); const t = staffRoster[teacherName];
-                
-                if (checkIsTeacherTimeConflicting(teacherName, s.rawDateKey, p.startBounds, p.endBounds)) {
-                    return fireToast(`Conflict: ${teacherName} overlaps an unavailable block window on this day.`);
-                }
-                if (t.dailyDuties[s.dateString] >= 1) return fireToast(`Conflict: ${teacherName} already assigned on: ${s.dateString}`);
-                if (s.constraintRule === "ONLY_CHINESE_TEACHERS" && !t.isChinese) return fireToast(`Rule Violation: Chinese Teacher lock.`);
-                if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return fireToast(`Rule Violation: English Teacher lock.`);
-                if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return fireToast(`Rule Violation: Maths Teacher lock.`);
-                p.staff = teacherName; refreshAppPipeline();
-            };
-
-            window.clearVacancy = function(sessionId, postKey) {
-                sessionsData.find(x => x.id === sessionId).posts.find(y => y.key === postKey).staff = null; refreshAppPipeline();
-            };
-
-            window.fireToast = function(msg) {
-                const el = document.getElementById("toast"); document.getElementById("toast-txt").innerText = msg;
-                el.className = el.className.replace("translate-y-20 opacity-0", "translate-y-0 opacity-100");
-                setTimeout(() => { el.className = el.className.replace("translate-y-0 opacity-100", "translate-y-20 opacity-0"); }, 4000);
-            };
-
-            window.refreshAppPipeline = function() { computeOperationalHours(); drawRosterSidebar(); drawGridCanvas(); };
-
-            window.downloadMasterGridReport = function() {
-                if (sessionsData.length === 0) return alert("No active calendar records loaded.");
-                const dayTrackerSet = new Set(); sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
-                const chronologicalTimelineColumns = [...dayTrackerSet].sort((a, b) => getDateSortWeight(a) - getDateSortWeight(b));
-
-                let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "Index,Teacher Name,Total Allocated Invigilation Hours," + chronologicalTimelineColumns.map(d => `"${d}"`).join(",") + ',"Special duty"\n';
-
-                const sortedStaffNamesList = [...staffOrderSequence];
-                sortedStaffNamesList.forEach((teacherName, index) => {
-                    const tData = staffRoster[teacherName]; const cleanRowIndex = index + 1;
-                    const columnsMapData = {}; chronologicalTimelineColumns.forEach(d => { columnsMapData[d] = []; });
-
-                    sessionsData.forEach(session => {
-                        session.posts.forEach(post => {
-                            if (post.staff === teacherName) {
-                                let currentFormStringCode = session.form;
-                                if (currentFormStringCode === "4" || currentFormStringCode === "5" || currentFormStringCode === "S") { currentFormStringCode = "S"; }
-                                columnsMapData[session.dateString].push(`${post.weight}S${currentFormStringCode}`);
-                            }
-                        });
-                    });
-
-                    const activeLineCellsBundleCSV = chronologicalTimelineColumns.map(date => {
-                        const dynamicDayDutiesArrayList = columnsMapData[date] || [];
-                        return dynamicDayDutiesArrayList.length > 0 ? `"${dynamicDayDutiesArrayList.join(" ")}"` : '""';
-                    });
-
-                    let specialDutyAuditCell = '""';
-                    if (tData.isDiscipline) { specialDutyAuditCell = '"1X"'; }
-
-                    csvContent += `"${cleanRowIndex}","${teacherName}","${tData.totalHours.toFixed(2)}",` + activeLineCellsBundleCSV.join(",") + "," + specialDutyAuditCell + "\n";
-                });
-
-                const matrixDownloadAnchor = document.createElement("a");
-                matrixDownloadAnchor.setAttribute("href", encodeURI(csvContent));
-                matrixDownloadAnchor.setAttribute("download", `master_faculty_invigilation_timeline_matrix.csv`);
-                document.body.appendChild(matrixDownloadAnchor); matrixDownloadAnchor.click(); matrixDownloadAnchor.remove();
-                fireToast("Master grid matrix layout compiled with special duty audit rules! ✓");
-            };
-
-            window.downloadLandscapePDFDocument = function() {
-                if (sessionsData.length === 0) return alert("Please parse dataset entries before running vector layout prints.");
-                
-                const printVaultNode = document.getElementById("pdf-printing-vault-node");
-                printVaultNode.innerHTML = ""; 
-
-                const distinctFormsFound = new Set();
-                sessionsData.forEach(s => {
-                    if (s.form) {
-                        const cleanF = String(s.form).trim();
-                        if (cleanF === "J") { distinctFormsFound.add("1"); distinctFormsFound.add("2"); }
-                        else if (cleanF === "S") { distinctFormsFound.add("4"); distinctFormsFound.add("5"); }
-                        else { distinctFormsFound.add(cleanF); }
-                    }
-                });
-                const sortedFormsChronologicalList = [...distinctFormsFound].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-
-                sortedFormsChronologicalList.forEach((formLevel, fIdx) => {
-                    const multiPageBreakWrapper = document.createElement("div");
-                    if (fIdx > 0) multiPageBreakWrapper.className = "pdf-page-break pt-6";
-
-                    multiPageBreakWrapper.innerHTML = `
-                        <h2 style="font-size: 18px; font-weight: bold; color: #0f172a; margin-bottom: 12px; font-family: sans-serif;">
-                            Exam invigilation timetable for S${formLevel}
-                        </h2>
-                    `;
-
-                    const formMatchingSessions = sessionsData.filter(s => {
-                        const sf = String(s.form).trim();
-                        if (sf === formLevel) return true;
-                        if (sf === "J" && (formLevel === "1" || formLevel === "2")) return true;
-                        if (sf === "S" && (formLevel === "4" || formLevel === "5")) return true;
-                        return false;
-                    });
-
-                    const orderedTimelineList = sortSessionsChronologically([...formMatchingSessions]);
-
-                    const tableElement = document.createElement("table");
-                    tableElement.style.width = "100%";
-                    tableElement.style.borderCollapse = "collapse";
-                    tableElement.style.fontSize = "10px";
-                    tableElement.style.fontFamily = "sans-serif";
-                    tableElement.style.marginBottom = "24px";
-
-                    tableElement.innerHTML = `
-                        <thead>
-                            <tr style="background-color: #0f172a; color: #ffffff; text-transform: uppercase; height: 28px;">
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; width: 8%;">Session</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; width: 10%;">Date/Blk</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; width: 5%;">Form</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 18%;">Subject Title</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 15%;">Venue Location</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 13%;">Exam Time</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 13%;">Required Post</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 8%;">Weight</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 12%;">Assigned Staff</th>
-                            </tr>
-                        </thead>
-                    `;
-
-                    const tableBodyNode = document.createElement("tbody");
-
-                    orderedTimelineList.forEach(session => {
-                        const totalPostRowsCount = session.posts.length;
-                        
-                        session.posts.forEach((post, pIdx) => {
-                            const tr = document.createElement("tr");
-                            tr.style.height = "26px";
-                            if (session.constraintRule && session.constraintRule !== "NONE") {
-                                tr.style.backgroundColor = "#f0fdf4"; 
-                            }
-
-                            let leadingCellsHTML = "";
-                            if (pIdx === 0) {
-                                leadingCellsHTML = `
-                                    <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: bold; background-color: #ffffff;">${session.id}</td>
-                                    <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; background-color: #ffffff; color: #64748b;">${session.dateString}<br>Blk ${session.startTime}</td>
-                                    <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: bold; background-color: #ffffff;">${session.form}</td>
-                                    <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; color: #0f172a; background-color: #ffffff;">${session.subject}</td>
-                                    <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; color: #475569; background-color: #ffffff;">${session.venue}</td>
-                                    <td rowspan="${totalPostRowsCount}" style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; background-color: #ffffff; color: #334155;">${session.venue.includes("OC") ? "Global Block" : session.timeWindow}</td>
-                                `;
-                            }
-
-                            tr.innerHTML = `
-                                ${leadingCellsHTML}
-                                <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; color: #334155;">${post.role}</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px; color: #94a3b8; font-family: monospace;">${post.weight.toFixed(2)}h</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: bold; color: ${post.staff ? '#1e3a8a' : '#b91c1c'};">
-                                    ${post.staff ? `👤 ${post.staff}` : 'UNASSIGNED'}
-                                </td>
-                            `;
-                            tableBodyNode.appendChild(tr);
-                        });
-                    });
-
-                    tableElement.appendChild(tableBodyNode);
-                    multiPageBreakWrapper.appendChild(tableElement);
-                    printVaultNode.appendChild(multiPageBreakWrapper);
-                });
-
-                const captureConfigurationMap = {
-                    margin:       [0.4, 0.4, 0.4, 0.4],
-                    filename:     'official_school_exam_invigilation_timetable.pdf',
-                    image:        { type: 'jpeg', quality: 1.0 },
-                    html2canvas:  { scale: 2.5, useCORS: true, logging: false },
-                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
-                };
-
-                html2pdf().set(captureConfigurationMap).from(printVaultNode).toContainer().toCanvas().toPdf().save().then(() => {
-                    fireToast("Landscape document compiled into high-density PDF successfully! ✓");
-                }).catch(err => {
-                    console.error("PDF Engine Crash Logs:", err);
-                    alert("Print engine failure: " + err.message);
-                });
-            };
-
-            window.downloadReport = function(reportType) {
-                if (sessionsData.length === 0) return alert("No active calendar records available.");
-                let csv = "data:text/csv;charset=utf-8,";
-                if (reportType === 'form') {
-                    csv += "Form,Date,Time Window,Subject,Venue,Required Post Character Role,Assigned Staff Name\n";
-                    const sorted = [...sessionsData].sort((a, b) => {
-                        const formComp = String(a.form).localeCompare(String(b.form), undefined, {numeric: true}); if (formComp !== 0) return formComp;
-                        const dateComp = getDateSortWeight(a.dateString) - getDateSortWeight(b.dateString); if (dateComp !== 0) return dateComp;
-                        return getTimeSortWeight(a.timeWindow) - getTimeSortWeight(b.timeWindow);
-                    });
-                    sorted.forEach(s => {
-                        s.posts.forEach(p => { csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`; });
-                    });
-                } else {
-                    csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
-                    
-                    staffOrderSequence.forEach(tName => {
-                        const teacherDuties = [];
-                        sessionsData.forEach(s => { s.posts.forEach(p => { if (p.staff === tName) teacherDuties.push({ session: s, post: p }); }); });
-                        teacherDuties.sort((a, b) => {
-                            const dateComp = getDateSortWeight(a.session.dateString) - getDateSortWeight(b.session.dateString); if (dateComp !== 0) return dateComp;
-                            return getTimeSortWeight(a.session.timeWindow) - getTimeSortWeight(b.session.timeWindow);
-                        });
-                        teacherDuties.forEach(item => {
-                            csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
-                        });
-                    });
-                }
-                const downloadAnchor = document.createElement("a"); downloadAnchor.setAttribute("href", encodeURI(csv));
-                downloadAnchor.setAttribute("download", `school_exam_timetable_report_sorted_by_${reportType}.csv`);
-                document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
-            };
+        // DOM DECK REFRESH TRIGGER
+        document.addEventListener("DOMContentLoaded", () => {
+            if (sessionsData.length > 0) refreshAppPipeline();
         });
     </script>
 </body>
