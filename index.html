@@ -273,7 +273,7 @@
                 if (!sId) return;
 
                 const rawDateInput = cleanShorthandString(row["Date"]);
-                if (!rawDateInput) return; // Clean skip for safety padding rows
+                if (!rawDateInput) return; 
 
                 const dateString = parseMMDD(rawDateInput);
                 const startTimeStr = parseHHMM(row["Start Time"]);
@@ -385,22 +385,25 @@
             });
         }
 
-        // --- FIXED PIPELINE: ROBUST PRE-ASSIGNMENT PARSER WITH TIME INHERITANCE ---
+        // --- FIXED SEQUENTIAL PRE-ASSIGNMENT FILLER ENGINE ---
         function linkPreAssignments(rows) {
             rows.forEach(row => {
                 const targetSid = String(row["Session_ID"] || "").trim();
                 const rawPostInput = String(row["Post"] || "").toUpperCase().trim();
                 const assignedStaffName = String(row["StaffName"] || "").trim();
                 
-                // Clear Guard: Ignore trailing empty template padding lines completely
                 if (!targetSid || !rawPostInput || !assignedStaffName) return;
 
                 sessionsData.forEach(s => {
                     if (s.baseSessionId === targetSid || s.id === targetSid) {
-                        s.posts.forEach(p => {
+                        
+                        // Sequential Sweep Lock: Find the FIRST slot matching this role type that isn't already pinned
+                        let foundSlotToPin = false;
+
+                        for (let p of s.posts) {
+                            if (p.pinned) continue; // Skip slots pinned by previous row entries
+
                             let matchFound = false;
-                            
-                            // Normalise mapping translations dynamically
                             if (rawPostInput === "C" || rawPostInput.startsWith("CHIEF")) {
                                 if (p.role.startsWith("Chief")) matchFound = true;
                             } else if (rawPostInput === "I" || rawPostInput.startsWith("INVIG")) {
@@ -413,16 +416,18 @@
 
                             if (matchFound) {
                                 p.staff = assignedStaffName;
-                                p.pinned = true; // Safety Lock: Protects post from scheduler clear sweeps
+                                p.pinned = true; // Lock down from scheduler clear loops
+                                foundSlotToPin = true;
 
-                                // Read timing overrides if intentionally populated
+                                // Apply optional timestamp boundaries if typed explicitly
                                 const customStart = row["Start"] ? parseHHMM(row["Start"]) : "";
                                 const customEnd = row["End"] ? parseHHMM(row["End"]) : "";
                                 if (customStart && customEnd) {
                                     p.time = customStart + " - " + customEnd;
                                 }
+                                break; // Break loop immediately after successfully filling one sequential position
                             }
-                        });
+                        }
                     }
                 });
             });
@@ -523,7 +528,6 @@
             });
         }
 
-        // --- FIXED PIPELINE: DYNAMIC DROPDOWN WITH COMBINED FORM INTERCEPTORS ---
         function populateFilterDropdownOptions() {
             const daySelect = document.getElementById("filter-day");
             const formSelect = document.getElementById("filter-form");
@@ -537,15 +541,12 @@
             sessionsData.forEach(s => {
                 if (s.dateString) uniqueDaysSet.add(s.dateString);
                 
-                // Read row types to auto-inject clean numerical form targets
                 if (s.form) {
                     const fClean = String(s.form).trim();
                     if (fClean === "J") {
-                        uniqueFormsSet.add("1");
-                        uniqueFormsSet.add("2");
+                        uniqueFormsSet.add("1"); uniqueFormsSet.add("2");
                     } else if (fClean === "S") {
-                        uniqueFormsSet.add("4");
-                        uniqueFormsSet.add("5");
+                        uniqueFormsSet.add("4"); uniqueFormsSet.add("5");
                     } else {
                         uniqueFormsSet.add(fClean);
                     }
@@ -557,7 +558,6 @@
                 daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
             });
             
-            // Render menu without loose placeholders (e.g. J and S are hidden, only 1,2,3,4,5 are generated)
             const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
             sortedForms.forEach(form => {
                 formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
@@ -708,7 +708,6 @@
             });
         }
 
-        // --- FIXED CROSS-MUTATION FILTER ROW VALIDATOR ---
         function drawGridCanvas() {
             const tbody = document.getElementById("table-canvas-body"); tbody.innerHTML = "";
             if (sessionsData.length === 0) return;
@@ -716,7 +715,6 @@
             const filteredSessions = sessionsData.filter(session => {
                 if (activeDayFilter !== "ALL" && session.dateString !== activeDayFilter) return false;
                 
-                // Intercept and resolve J/S multi-form selections dynamically
                 if (activeFormFilter !== "ALL") {
                     const sessionForm = String(session.form).trim();
                     const selectedForm = String(activeFormFilter).trim();
