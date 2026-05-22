@@ -266,7 +266,7 @@
         <span style="color:#f59e0b; font-weight:bold;">⚠️</span> <span id="toast-txt">Alert message text placeholder.</span>
     </div>
 
-    <div id="pdf-printing-vault-node" style="display:none;"></div>
+    <div id="pdf-printing-vault-node" style="position: absolute; left: -9999px; top: 0; width: 100%;"></div>
 
     <script>
         // ROOT DECLARATION CHANNELS: Binds everything cleanly to the global execution context
@@ -1039,7 +1039,8 @@
 
         // --- FIXED VECTOR PDF ENGINE: 0% TAILWIND PENETRATION FOR ABSOLUTE SAFETY ---
         window.downloadLandscapePDFDocument = function() {
-            if (window.sessionsData.length === 0) return alert("Please parse dataset entries before running vector layout prints.");
+            if (window.sessionsData.length === 0) return alert("No data to print.");
+            const printVaultNode = document.getElementById("pdf-printing-vault-node");
             
             const printVaultNode = document.getElementById("pdf-printing-vault-node");
             if (!printVaultNode) return;
@@ -1152,15 +1153,20 @@
                 jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
             };
 
-        setTimeout(() => {
-                html2pdf().set(captureConfigurationMap).from(printVaultNode).save().then(() => {
-                    window.fireToast("Landscape document compiled successfully! ✓");
-                }).catch(err => {
-                    console.error("PDF Engine Crash Logs:", err);
-                    alert("Print engine failure: " + err.message);
-                });
-            }, 500);
-        };
+            setTimeout(() => {
+                    html2pdf()
+                        .set(captureConfigurationMap)
+                        .from(printVaultNode)
+                        .save()
+                        .then(() => {
+                            window.fireToast("Landscape document compiled successfully! ✓");
+                        })
+                        .catch(err => {
+                            console.error("PDF Engine Crash Logs:", err);
+                            alert("Print engine failure: " + err.message);
+                        });
+                }, 1200); // Increased to 1200ms to ensure the table renders before capture
+            };
         
         window.downloadReport = function(reportType) {
             if (window.sessionsData.length === 0) return alert("No active calendar records available.");
