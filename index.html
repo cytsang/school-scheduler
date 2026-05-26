@@ -270,21 +270,44 @@
                 <h2 style="font-weight:bold; font-size:14px;">📖 Template Data Entry Shorthand Code Manual</h2>
                 <div class="modal-close" onclick="window.toggleDocumentationModal(false)">×</div>
             </div>
-            <div class="modal-body">
-                <div class="modal-section">
-                    <h3>👤 Sheet 1: Staff_Roster</h3>
-                    <ul>
-                        <li><strong>Discipline Column:</strong> Enter <strong>Y</strong> to flag a Discipline Master/Mistress (+1.0h baseline auto-credit).</li>
-                        <li><strong>Chinese / English / Maths Columns:</strong> Enter <strong>Y</strong> to register subject specializations.</li>
-                    </ul>
-                </div>
-                <div class="modal-section">
-                    <h3>📅 Sheet 2: Availability</h3>
-                    <ul>
-                        <li><strong>Tokens:</strong> <strong>A</strong> = Blocked 08:00-10:30, <strong>B</strong> = Blocked 10:30-13:00, <strong>C</strong> = Blocked 13:00-16:00.</li>
-                    </ul>
-                </div>
-            </div>
+<div class="modal-body">
+    <div class="modal-section">
+        <h3>👤 Sheet 1: Staff_Roster</h3>
+        <ul>
+            <li><strong>Discipline:</strong> Enter <strong>Y</strong> for Discipline Master/Mistress (+1.0h credit).</li>
+            <li><strong>Chinese / English / Maths:</strong> Enter <strong>Y</strong> to flag subject specialization.</li>
+        </ul>
+    </div>
+    <div class="modal-section">
+        <h3>📅 Sheet 2: Availability</h3>
+        <ul>
+            <li><strong>Tokens:</strong> <strong>A</strong> (08:00-10:30), <strong>B</strong> (10:30-13:00), <strong>C</strong> (13:00-16:00).</li>
+            <li>Enter these letters under the specific Date column to mark a teacher as blocked.</li>
+        </ul>
+    </div>
+    <div class="modal-section">
+        <h3>⚙️ Sheet 3: Session_Rules</h3>
+        <ul>
+            <li><strong>Target_Type:</strong> Session_ID, Subject, or Form.</li>
+            <li><strong>Target_Value:</strong> The specific ID or name (e.g., "CES").</li>
+            <li><strong>Constraint_Condition:</strong> Use <strong>ONLY_CHINESE_TEACHERS</strong>, <strong>ONLY_ENGLISH_TEACHERS</strong>, or <strong>ONLY_MATHS_TEACHERS</strong>.</li>
+        </ul>
+    </div>
+    <div class="modal-section">
+        <h3>📊 Sheet 4: Exam_Master</h3>
+        <ul>
+            <li><strong>Structure:</strong> Columns for Session_ID, Date, Start Time, End Time, Form, Subject, Venue, and Posts Required.</li>
+            <li><strong>Posts Required:</strong> String code where <strong>C</strong> = Chief, <strong>I</strong> = Invigilator, <strong>B</strong> = Beginner, <strong>E</strong> = Ender.</li>
+        </ul>
+    </div>
+    <div class="modal-section">
+        <h3>📌 Sheet 5: Pre_Assignments</h3>
+        <ul>
+            <li><strong>Purpose:</strong> Pin specific teachers to sessions manually.</li>
+            <li><strong>Columns:</strong> Session_ID, Post (e.g., "Chief"), and StaffName (exact match from Staff_Roster).</li>
+        </ul>
+    </div>
+</div>
             <div class="modal-footer">
                 <button onclick="window.toggleDocumentationModal(false)" style="background:#0f172a; color:#ffffff;">Return to Allocation Board</button>
             </div>
