@@ -296,6 +296,16 @@
     </div>
 
     <script>
+                window.toggleDocumentationModal = function(show) {
+            const modal = document.getElementById("documentation-modal");
+            if (modal) {
+                if (show) {
+                    modal.classList.remove("hidden");
+                } else {
+                    modal.classList.add("hidden");
+                }
+            }
+        };
         // ROOT DECLARATION CHANNELS: Binds everything cleanly to the global execution context
         window.staffRoster = {};
         window.staffOrderSequence = [];
