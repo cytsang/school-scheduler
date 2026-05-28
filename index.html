@@ -179,6 +179,10 @@
                     <option value="2.00">2.00h</option>
                 </select>
             </div>
+            <div class="variance-box">
+        <label style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase;">Ratio Scalar:</label>
+        <input type="number" id="ratio-multiplier" value="2.0" step="0.1" min="1.0" style="width: 50px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 12px; color: #1e293b;" />
+            </div>
             <button onclick="window.runAutoScheduler()" class="btn-blue" style="box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2);">⚡ Run Auto-Scheduler</button>
         </div>
 
@@ -276,6 +280,7 @@
         <ul>
             <li><strong>Discipline:</strong> Enter <strong>Y</strong> for Discipline Master/Mistress (+1.0h credit).</li>
             <li><strong>Chinese / English / Maths:</strong> Enter <strong>Y</strong> to flag subject specialization.</li>
+            <li><strong>Ratio:</strong> Enter <strong>Y</strong> to apply the target invigilation multiplier to this colleague.</li>
         </ul>
     </div>
     <div class="modal-section">
@@ -444,6 +449,13 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+
+                    const requiredSheets = ["Staff_Roster", "Availability", "Session_Rules", "Exam_Master", "Pre_Assignments"];
+                    for (let sheetName of requiredSheets) {
+                        if (!workbook.Sheets[sheetName]) {
+                            throw new Error(`Missing required worksheet tab: "${sheetName}". Please check your Excel file.`);
+                        }
+                    }
                     
                     const rawStaff = extractRowsFromSheet(workbook, "Staff_Roster");
                     const rawAvail = extractRowsFromSheet(workbook, "Availability");
@@ -488,6 +500,7 @@
                     isEnglish: String(row["English"] || "").toUpperCase().trim() === "Y",
                     isMaths: String(row["Maths"] || "").toUpperCase().trim() === "Y",
                     isDiscipline: isDisc,
+                    isRatio: String(row["Ratio"] || "").toUpperCase().trim() === "Y", // <--- ADD THIS NEW LINE
                     extraHours: isDisc ? 1.0 : 0.0,
                     unavailableBlocks: [],
                     rawAvailabilityRow: row 
@@ -872,8 +885,13 @@
 
                         let targetSelectionPool = pristineTierPool.length > 0 ? pristineTierPool : basePool;
 
+                        const ratioScalar = parseFloat(document.getElementById("ratio-multiplier").value) || 2.0;
+                        
                         targetSelectionPool.sort((a, b) => {
-                            return (window.staffRoster[a].totalHours + Math.random() * 0.4) - (window.staffRoster[b].totalHours + Math.random() * 0.4);
+                            // Standard staff divide by 1. Ratio staff divide by the scalar.
+                            const effectiveHoursA = window.staffRoster[a].totalHours / (window.staffRoster[a].isRatio ? ratioScalar : 1.0);
+                            const effectiveHoursB = window.staffRoster[b].totalHours / (window.staffRoster[b].isRatio ? ratioScalar : 1.0);
+                            return (effectiveHoursA + Math.random() * 0.4) - (effectiveHoursB + Math.random() * 0.4);
                         });
                         
                         post.staff = targetSelectionPool[0];
@@ -885,9 +903,15 @@
                 }
                 if (!brokenSlotDetected) {
                     window.computeOperationalHours();
-                    const balanceHours = Object.values(window.staffRoster).map(t => t.totalHours);
-                    finalVariance = Math.max(...balanceHours) - Math.min(...balanceHours);
-                    if (finalVariance <= (allowedVarianceWindow + 0.001)) { success = true; break; }
+                    const standardStaff = Object.values(window.staffRoster).filter(t => !t.isRatio);
+                        if (standardStaff.length > 0) {
+                            const balanceHours = standardStaff.map(t => t.totalHours);
+                            finalVariance = Math.max(...balanceHours) - Math.min(...balanceHours);
+                            if (finalVariance <= (allowedVarianceWindow + 0.001)) { success = true; break; }
+                        } else {
+                            success = true; break; // Failsafe if everyone is a ratio colleague
+                        }
+                    }
                 }
             }
             if (!success) { alert(`⚠️ Hard Variance Target Unreached:\nCould not complete layout under your selected ${allowedVarianceWindow.toFixed(2)}h variance ceiling limit.\n(Best execution spread: ${finalVariance.toFixed(2)}h).`); }
@@ -901,7 +925,8 @@
             container.innerHTML = "";
             
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
-            const balanceHours = Object.values(window.staffRoster).map(t => t.totalHours);
+            const standardStaff = Object.values(window.staffRoster).filter(t => !t.isRatio);
+            const balanceHours = standardStaff.map(t => t.totalHours);
             
             if (balanceHours.length > 0) {
                 const max = Math.max(...balanceHours); const min = Math.min(...balanceHours); const variance = max - min;
@@ -926,6 +951,7 @@
                 block.className = "roster-card";
                 let badges = "";
                 if (data.isDiscipline) badges += `<span class="badge bg-disc">DISC</span>`;
+                if (data.isRatio) badges += `<span class="badge" style="background-color: #eab308; color: #ffffff;">RATIO</span>`;
                 if (data.isChinese) badges += `<span class="badge bg-chi">CHI</span>`;
                 if (data.isEnglish) badges += `<span class="badge bg-eng">ENG</span>`;
                 if (data.isMaths) badges += `<span class="badge bg-math">MATH</span>`;
