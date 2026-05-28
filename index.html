@@ -11,7 +11,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        header { background-color: #0f172a; color: #ffffff; padding: 14px 24px; display: flex; justify-content: space-between; items-center: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); z-index: 10; }
+        header { background-color: #0f172a; color: #ffffff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); z-index: 10; }
         header h1 { font-size: 16px; font-weight: bold; }
         header p { font-size: 11px; color: #94a3b8; margin-top: 2px; }
         .btn-group { display: flex; gap: 8px; align-items: center; }
@@ -26,15 +26,15 @@
         
         .control-deck { background-color: #ffffff; padding: 12px 24px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 16px; font-size: 12px; }
         .step-tag { font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-        .file-picker-label { flex: 1; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; background-color: #f8fafc; cursor: pointer; color: #475569; max-w: 400px; }
+        .file-picker-label { flex: 1; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; background-color: #f8fafc; cursor: pointer; color: #475569; max-width: 400px; }
         .file-picker-label:hover { background-color: #f1f5f9; }
-        .variance-box { display: flex; align-items: center; gap: 6px; background-color: #f1f5f9; padding: 4px 10px; rounded-radius: 8px; border: 1px solid #e2e8f0; }
-        .variance-box select { background: #ffffff; border: 1px solid #cbd5e1; rounded-radius: 4px; padding: 2px 6px; font-weight: bold; }
+        .variance-box { display: flex; align-items: center; gap: 6px; background-color: #f1f5f9; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .variance-box select { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 6px; font-weight: bold; }
         
         .workspace { display: flex; flex: 1; overflow: hidden; width: 100%; }
         aside { width: 288px; background-color: #ffffff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: 1px 0 2px 0 rgb(0 0 0 / 0.05); }
         .sidebar-content { flex: 1; overflow-y: auto; padding: 16px; }
-        .sidebar-header { sticky: top; background: #ffffff; padding-bottom: 8px; border-b: 1px solid #f1f5f9; margin-bottom: 12px; }
+        .sidebar-header { position: sticky; top: 0; background: #ffffff; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; margin-bottom: 12px; }
         .sidebar-header h2 { font-size: 12px; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
         .sidebar-header p { font-size: 10px; color: #94a3b8; margin-top: 2px; }
         
@@ -47,7 +47,7 @@
         
         .sidebar-footer { padding: 16px; border-top: 1px solid #e2e8f0; background-color: #f8fafc; font-size: 12px; }
         .variance-readout-row { display: flex; justify-content: space-between; font-weight: bold; color: #64748b; text-transform: uppercase; font-size: 10px; }
-        .progress-bg { w-full: 100%; bg-color: #e2e8f0; height: 6px; border-radius: 9999px; margin-top: 6px; overflow: hidden; background: #e2e8f0; }
+        .progress-bg { width: 100%; background-color: #e2e8f0; height: 6px; border-radius: 9999px; margin-top: 6px; overflow: hidden; }
         .progress-bar { height: 100%; width: 0%; transition: all 0.3s; }
         .progress-emerald { background-color: #10b981; } .progress-rose { background-color: #ef4444; }
         
@@ -59,7 +59,7 @@
         
         .table-container { background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; flex: 1; display: flex; flex-direction: column; }
         .table-scroll { flex: 1; overflow: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-w: 1050px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 1050px; }
         thead tr { background-color: #0f172a; color: #e2e8f0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; height: 40px; position: sticky; top: 0; z-index: 20; }
         thead th { padding: 8px 12px; border-bottom: 1px solid #0f172a; }
         tbody tr { border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #475569; background-color: #ffffff; }
@@ -88,8 +88,8 @@
         /* Modal Overlay */
         .modal { position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
         .modal.hidden { display: none; }
-        .modal-content { background-color: #ffffff; border-radius: 16px; width: 85%; max-w: 800px; height: 80vh; display: flex; flex-direction: column; shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); overflow: hidden; border: 1px solid #e2e8f0; }
-        .modal-header { background-color: #0f172a; padding: 16px 24px; display: flex; justify-content: space-between; items-center: center; color: #ffffff; }
+        .modal-content { background-color: #ffffff; border-radius: 16px; width: 85%; max-width: 800px; height: 80vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); overflow: hidden; border: 1px solid #e2e8f0; }
+        .modal-header { background-color: #0f172a; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; color: #ffffff; }
         .modal-close { background: #334155; color: #94a3b8; font-size: 20px; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .modal-close:hover { color: #ffffff; background-color: #475569; }
         .modal-body { flex: 1; overflow-y: auto; padding: 24px; background-color: #f8fafc; font-size: 12px; line-height: 1.6; }
@@ -158,7 +158,7 @@
 
         <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
             <span class="step-tag">Step 2:</span>
-            <label class="file-pick-label" style="display: flex; flex:1; justify-content: space-between; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius:8px; background:#f8fafc; cursor:pointer;">
+            <label class="file-picker-label">
                 <span id="file-upload-label">📂 Choose/Upload Completed Data Workbook (.xlsx)...</span>
                 <input type="file" id="excel-file-picker" style="display:none;" accept=".xlsx" onchange="window.processLocalExcelWorkbook(event)" />
             </label>
@@ -180,8 +180,8 @@
                 </select>
             </div>
             <div class="variance-box">
-        <label style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase;">Ratio Scalar:</label>
-        <input type="number" id="ratio-multiplier" value="2.0" step="0.1" min="1.0" style="width: 50px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 12px; color: #1e293b;" />
+                <label style="font-size:10px; font-weight:bold; color:#64748b; text-transform:uppercase;">Ratio Scalar:</label>
+                <input type="number" id="ratio-multiplier" value="2.0" step="0.1" min="1.0" style="width: 50px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 12px; color: #1e293b;" />
             </div>
             <button onclick="window.runAutoScheduler()" class="btn-blue" style="box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2);">⚡ Run Auto-Scheduler</button>
         </div>
@@ -324,7 +324,7 @@
     </div>
 
     <script>
-                window.toggleDocumentationModal = function(show) {
+        window.toggleDocumentationModal = function(show) {
             const modal = document.getElementById("documentation-modal");
             if (modal) {
                 if (show) {
@@ -429,6 +429,7 @@
             });
         };
 
+        // NEW BULLETPROOF FILE UPLOAD PARSER
         window.processLocalExcelWorkbook = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -444,52 +445,56 @@
                     </td></tr>`;
             }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+            // A tiny timeout forces the browser to actually show the "Processing..." message before it freezes up to read the file
+            setTimeout(() => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array', cellDates: false });
 
-                    // 1. FUZZY MATCHING: Protects against accidental spaces/caps in Excel tab names
-                    const requiredSheets = ["Staff_Roster", "Availability", "Session_Rules", "Exam_Master", "Pre_Assignments"];
-                    const actualSheets = Object.keys(workbook.Sheets);
-                    
-                    for (let required of requiredSheets) {
-                        // Look for a tab that matches, ignoring spaces and upper/lower case
-                        const match = actualSheets.find(s => s.trim().toLowerCase() === required.toLowerCase());
-                        if (!match) {
-                            throw new Error(`Missing required worksheet tab: "${required}". Please check your Excel file.`);
+                        // Fuzzy Matching: Protects against accidental spaces or wrong casing in Excel tab names
+                        const requiredSheets = ["Staff_Roster", "Availability", "Session_Rules", "Exam_Master", "Pre_Assignments"];
+                        const actualSheets = Object.keys(workbook.Sheets);
+
+                        for (let required of requiredSheets) {
+                            const match = actualSheets.find(s => s.trim().toLowerCase() === required.toLowerCase());
+                            if (!match) {
+                                throw new Error(`Missing required worksheet tab: "${required}". Please check your Excel file.`);
+                            }
+                            if (match !== required) {
+                                workbook.Sheets[required] = workbook.Sheets[match];
+                            }
                         }
-                        // Re-map the messy name to the perfect internal name so the rest of the code doesn't break
-                        if (match !== required) {
-                            workbook.Sheets[required] = workbook.Sheets[match];
-                        }
+                        
+                        const rawStaff = extractRowsFromSheet(workbook, "Staff_Roster");
+                        const rawAvail = extractRowsFromSheet(workbook, "Availability");
+                        const rawRules = extractRowsFromSheet(workbook, "Session_Rules");
+                        const rawMaster = extractRowsFromSheet(workbook, "Exam_Master");
+                        const rawPre = extractRowsFromSheet(workbook, "Pre_Assignments");
+
+                        buildStaffRosterMemory(rawStaff);
+                        parseAvailabilityConstraints(rawAvail);
+                        const rulesMap = buildRulesMemory(rawRules);
+                        processExamMasterTimeline(rawMaster, rulesMap);
+                        linkPreAssignments(rawPre);
+
+                        window.populateFilterDropdownOptions();
+                        window.refreshAppPipeline();
+                        
+                        if (label) label.innerText = `📂 Current Data: ${file.name}`;
+                        window.fireToast("Excel workbook parsed and rendered successfully! ✓");
+                    } catch (err) {
+                        alert("Excel Processing Error:\n" + err.message);
+                        console.error(err);
+                        if (label) label.innerText = `📂 Choose/Upload Completed Data Workbook (.xlsx)...`;
+                    } finally {
+                        // Safely reset the input so you can re-upload the exact same file repeatedly without refreshing
+                        document.getElementById("excel-file-picker").value = '';
                     }
-                    
-                    const rawStaff = extractRowsFromSheet(workbook, "Staff_Roster");
-                    const rawAvail = extractRowsFromSheet(workbook, "Availability");
-                    const rawRules = extractRowsFromSheet(workbook, "Session_Rules");
-                    const rawMaster = extractRowsFromSheet(workbook, "Exam_Master");
-                    const rawPre = extractRowsFromSheet(workbook, "Pre_Assignments");
-
-                    buildStaffRosterMemory(rawStaff);
-                    parseAvailabilityConstraints(rawAvail);
-                    const rulesMap = buildRulesMemory(rawRules);
-                    processExamMasterTimeline(rawMaster, rulesMap);
-                    linkPreAssignments(rawPre);
-
-                    window.populateFilterDropdownOptions();
-                    window.refreshAppPipeline();
-                    window.fireToast("Excel workbook parsed and rendered successfully! ✓");
-                } catch (err) {
-                    alert("Excel Processing Error:\n" + err.message);
-                    console.error(err);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-
-            // 2. THE RESET FIX: Clears the input so you can re-upload the exact same file repeatedly
-            event.target.value = ''; 
+                };
+                reader.readAsArrayBuffer(file);
+            }, 50);
         };
 
         function extractRowsFromSheet(workbook, sheetName) {
@@ -512,7 +517,7 @@
                     isEnglish: String(row["English"] || "").toUpperCase().trim() === "Y",
                     isMaths: String(row["Maths"] || "").toUpperCase().trim() === "Y",
                     isDiscipline: isDisc,
-                    isRatio: String(row["Ratio"] || "").toUpperCase().trim() === "Y", // <--- ADD THIS NEW LINE
+                    isRatio: String(row["Ratio"] || "").toUpperCase().trim() === "Y",
                     extraHours: isDisc ? 1.0 : 0.0,
                     unavailableBlocks: [],
                     rawAvailabilityRow: row 
@@ -925,7 +930,7 @@
                         }
                     }
                 }
-            }
+            
             if (!success) { alert(`⚠️ Hard Variance Target Unreached:\nCould not complete layout under your selected ${allowedVarianceWindow.toFixed(2)}h variance ceiling limit.\n(Best execution spread: ${finalVariance.toFixed(2)}h).`); }
             else { window.fireToast("Auto-scheduling completed within variance parameters limit! ✓"); }
             window.refreshAppPipeline();
