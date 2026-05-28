@@ -450,10 +450,19 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array', cellDates: false });
 
+                    // 1. FUZZY MATCHING: Protects against accidental spaces/caps in Excel tab names
                     const requiredSheets = ["Staff_Roster", "Availability", "Session_Rules", "Exam_Master", "Pre_Assignments"];
-                    for (let sheetName of requiredSheets) {
-                        if (!workbook.Sheets[sheetName]) {
-                            throw new Error(`Missing required worksheet tab: "${sheetName}". Please check your Excel file.`);
+                    const actualSheets = Object.keys(workbook.Sheets);
+                    
+                    for (let required of requiredSheets) {
+                        // Look for a tab that matches, ignoring spaces and upper/lower case
+                        const match = actualSheets.find(s => s.trim().toLowerCase() === required.toLowerCase());
+                        if (!match) {
+                            throw new Error(`Missing required worksheet tab: "${required}". Please check your Excel file.`);
+                        }
+                        // Re-map the messy name to the perfect internal name so the rest of the code doesn't break
+                        if (match !== required) {
+                            workbook.Sheets[required] = workbook.Sheets[match];
                         }
                     }
                     
@@ -478,6 +487,9 @@
                 }
             };
             reader.readAsArrayBuffer(file);
+
+            // 2. THE RESET FIX: Clears the input so you can re-upload the exact same file repeatedly
+            event.target.value = ''; 
         };
 
         function extractRowsFromSheet(workbook, sheetName) {
