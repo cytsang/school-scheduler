@@ -1185,7 +1185,8 @@
                     s.posts.forEach(p => { csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`; });
                 });
             } else {
-                csv += "Teacher Name,Date,Venue Location,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
+                // UPDATE: Added "Form" to the header
+                csv += "Teacher Name,Date,Venue Location,Form,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
                 
                 window.staffOrderSequence.forEach(tName => {
                     const teacherDuties = [];
@@ -1195,7 +1196,8 @@
                         return window.getTimeSortWeight(a.session.timeWindow) - window.getTimeSortWeight(b.session.timeWindow);
                     });
                     teacherDuties.forEach(item => {
-                        csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
+                        // UPDATE: Added "${item.session.form}" to the row output
+                        csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.form}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
                     });
                 });
             }
