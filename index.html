@@ -1148,7 +1148,17 @@
                         if (post.staff === teacherName) {
                             let currentFormStringCode = session.form;
                             if (currentFormStringCode === "4" || currentFormStringCode === "5" || currentFormStringCode === "S") { currentFormStringCode = "S"; }
-                            columnsMapData[session.dateString].push(`${post.weight}S${currentFormStringCode}`);
+                            
+                            let displayCode = "";
+                            if (post.role.startsWith("Beginner")) {
+                                displayCode = `{B${currentFormStringCode}`;
+                            } else if (post.role.startsWith("Ender")) {
+                                displayCode = `{E${currentFormStringCode}`;
+                            } else {
+                                displayCode = `${post.weight}S${currentFormStringCode}`;
+                            }
+                            
+                            columnsMapData[session.dateString].push(displayCode);
                         }
                     });
                 });
