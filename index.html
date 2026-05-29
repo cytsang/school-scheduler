@@ -897,7 +897,8 @@
                                 const roleName = post.role.toLowerCase();
                                 const venueName = session.venue.toLowerCase();
                                 
-                                const isInvig = roleName.includes("invigilator");
+                                // Must include 'invigilator' but MUST NOT include 'chief'
+                                const isInvig = roleName.includes("invigilator") && !roleName.includes("chief");
                                 const isHallOrCover = venueName.includes("hall") || venueName.includes("cover") || venueName.includes("playground");
                                 
                                 if (!isInvig || !isHallOrCover) {
@@ -1102,11 +1103,12 @@
                 const roleName = p.role.toLowerCase();
                 const venueName = s.venue.toLowerCase();
                 
-                const isInvig = roleName.includes("invigilator");
+                // Must include 'invigilator' but MUST NOT include 'chief'
+                const isInvig = roleName.includes("invigilator") && !roleName.includes("chief");
                 const isHallOrCover = venueName.includes("hall") || venueName.includes("cover") || venueName.includes("playground");
                 
                 if (!isInvig || !isHallOrCover) {
-                    return window.fireToast(`Rule Violation: Ratio staff can only be Invigilators in Hall or Covered Playground.`);
+                    return window.fireToast(`Rule Violation: Ratio staff can only be regular Invigilators (not Chief) in Hall or Covered Playground.`);
                 }
             }
             // -------------------------------
