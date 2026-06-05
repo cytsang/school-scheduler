@@ -1380,7 +1380,13 @@
                         return window.getTimeSortWeight(a.session.timeWindow) - window.getTimeSortWeight(b.session.timeWindow);
                     });
                     teacherDuties.forEach(item => {
-                        csv += `"${tName}","${item.session.rawDateKey}","${item.session.venue}","${item.session.form}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
+                        // Clean the role: remove "(Shift A/B)", "(Man. A/B)" and trim whitespace
+                        let cleanRole = item.post.role
+                            .replace(/\s*\(Shift [AB]\)/g, "")
+                            .replace(/\s*\(Man\. [AB]\)/g, "")
+                            .trim();
+                        
+                        csv += `"${tName}","${item.session.rawDateKey}","${item.session.venue}","${item.session.form}","${item.session.subject}","${cleanRole}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
                     });
                 });
             }
