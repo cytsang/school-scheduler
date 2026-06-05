@@ -1410,30 +1410,52 @@
         <div class="modal-body">
             <pre style="background: #f1f5f9; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; white-space: pre-wrap;">
 Sub FormatTeacherReport()
-    Dim ws As Worksheet, lastRow As Long, teacherCol As Range, cell As Range
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim teacherCol As Range
+    Dim cell As Range
+    
     Set ws = ActiveSheet
     lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    
+    ' 1. Set Column Widths
     ws.Columns("C").ColumnWidth = 18
     ws.Columns("F").ColumnWidth = 16
     ws.Columns("G").ColumnWidth = 14
+    
+    ' 2. Align Content
     ws.Range("B:B, D:D").HorizontalAlignment = xlCenter
+    
+    ' 3. Apply Borders to all cells with content
     With ws.Range("A1:H" & lastRow)
         .Borders.LineStyle = xlContinuous
         .Borders.Weight = xlThin
     End With
+    
+    ' 4. Page Setup for A4 Printing
     With ws.PageSetup
-        .PrintTitleRows = "$1:$1"
+        .PrintTitleRows = "$1:$1" ' Repeat header row
         .PaperSize = xlPaperA4
         .Orientation = xlPortrait
         .Zoom = False
         .FitToPagesWide = 1
+        .FitToPagesTall = False
     End With
+    
+    ' 5. Insert Page Breaks for each Teacher
+    ' Assumes "Teacher Name" is in Column A
+    Set teacherCol = ws.Range("A2:A" & lastRow)
+    
+    ' Clear existing breaks
     ws.ResetAllPageBreaks
-    For Each cell In ws.Range("A2:A" & lastRow)
+    
+    For Each cell In teacherCol
         If cell.Value <> cell.Offset(-1, 0).Value And cell.Row > 2 Then
             ws.HPageBreaks.Add Before:=cell
         End If
     Next cell
+    
+    MsgBox "Report formatted and page breaks inserted!", vbInformation
 End Sub
             </pre>
         </div>
