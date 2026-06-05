@@ -142,6 +142,7 @@
             <button onclick="window.toggleDocumentationModal(true)" class="btn-doc">📖 View Data Entry Guide</button>
             <button onclick="window.downloadReport('form')" class="btn-blue">📊 Export by Form</button>
             <button onclick="window.downloadReport('teacher')" class="btn-purple">👤 Export by Teacher</button>
+            <button onclick="window.showVbaModal()" class="btn-indigo">📜 View Excel VBA Macro</button>
             <button onclick="window.downloadMasterGridReport()" class="btn-emerald">📅 Export Master Grid Matrix</button>
             <button onclick="window.print()" class="btn-indigo">🖨️ Print Timetable</button>
         </div>
@@ -1394,6 +1395,52 @@
             downloadAnchor.setAttribute("download", `school_exam_timetable_report_sorted_by_${reportType}.csv`);
             document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove();
         };
+
+        window.showVbaModal = function() {
+            document.getElementById('vba-modal').classList.remove('hidden');
+        };
     </script>
+    
+    <div id="vba-modal" class="modal hidden">
+    <div class="modal-content" style="width: 800px; height: 70vh;">
+        <div class="modal-header">
+            <h2 style="font-weight:bold; font-size:14px;">📜 Excel VBA Macro for Report Formatting</h2>
+            <div class="modal-close" onclick="document.getElementById('vba-modal').classList.add('hidden')">×</div>
+        </div>
+        <div class="modal-body">
+            <pre style="background: #f1f5f9; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; white-space: pre-wrap;">
+Sub FormatTeacherReport()
+    Dim ws As Worksheet, lastRow As Long, teacherCol As Range, cell As Range
+    Set ws = ActiveSheet
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    ws.Columns("C").ColumnWidth = 18
+    ws.Columns("F").ColumnWidth = 16
+    ws.Columns("G").ColumnWidth = 14
+    ws.Range("B:B, D:D").HorizontalAlignment = xlCenter
+    With ws.Range("A1:H" & lastRow)
+        .Borders.LineStyle = xlContinuous
+        .Borders.Weight = xlThin
+    End With
+    With ws.PageSetup
+        .PrintTitleRows = "$1:$1"
+        .PaperSize = xlPaperA4
+        .Orientation = xlPortrait
+        .Zoom = False
+        .FitToPagesWide = 1
+    End With
+    ws.ResetAllPageBreaks
+    For Each cell In ws.Range("A2:A" & lastRow)
+        If cell.Value <> cell.Offset(-1, 0).Value And cell.Row > 2 Then
+            ws.HPageBreaks.Add Before:=cell
+        End If
+    Next cell
+End Sub
+            </pre>
+        </div>
+        <div class="modal-footer">
+            <button onclick="document.getElementById('vba-modal').classList.add('hidden')" style="background:#0f172a; color:#ffffff;">Close</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
