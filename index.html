@@ -1307,7 +1307,7 @@
 
         window.downloadMasterGridReport = function() {
             if (window.sessionsData.length === 0) return alert("No active calendar records loaded.");
-            const dayTrackerSet = new Set(); window.sessionsData.forEach(s => { if (s.dateString) dayTrackerSet.add(s.dateString); });
+            const dayTrackerSet = new Set(); window.sessionsData.forEach(s => { if (s.rawDateKey) dayTrackerSet.add(s.rawDateKey); });
             const chronologicalTimelineColumns = [...dayTrackerSet].sort((a, b) => window.getDateSortWeight(a) - window.getDateSortWeight(b));
 
             let csvContent = "data:text/csv;charset=utf-8,";
@@ -1333,7 +1333,7 @@
                                 displayCode = `${post.weight}S${currentFormStringCode}`;
                             }
                             
-                            columnsMapData[session.dateString].push(displayCode);
+                            columnsMapData[session.rawDateKey].push(displayCode);
                         }
                     });
                 });
@@ -1367,7 +1367,7 @@
                     return window.getTimeSortWeight(a.timeWindow) - window.getTimeSortWeight(b.timeWindow);
                 });
                 sorted.forEach(s => {
-                    s.posts.forEach(p => { csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`; });
+                    s.posts.forEach(p => { csv += `"${s.form}","${s.rawDateKey}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`; });
                 });
             } else {
                 csv += "Teacher Name,Date,Venue Location,Form,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
@@ -1380,7 +1380,7 @@
                         return window.getTimeSortWeight(a.session.timeWindow) - window.getTimeSortWeight(b.session.timeWindow);
                     });
                     teacherDuties.forEach(item => {
-                        csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.form}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
+                        csv += `"${tName}","${item.session.rawDateKey}","${item.session.venue}","${item.session.form}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
                     });
                 });
             }
