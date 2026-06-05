@@ -34,7 +34,7 @@
         .workspace { display: flex; flex: 1; overflow: hidden; width: 100%; }
         aside { width: 288px; background-color: #ffffff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: 1px 0 2px 0 rgb(0 0 0 / 0.05); }
         .sidebar-content { flex: 1; overflow-y: auto; padding: 16px; }
-        .sidebar-header { position: sticky; top: 0; background: #ffffff; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; margin-bottom: 12px; }
+        .sidebar-header { position: sticky; top: 0; background: #ffffff; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; margin-bottom: 12px; z-index: 5; }
         .sidebar-header h2 { font-size: 12px; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
         .sidebar-header p { font-size: 10px; color: #94a3b8; margin-top: 2px; }
         
@@ -79,7 +79,6 @@
         .clear-btn { color: #94a3b8; background: none; border: none; font-size: 14px; cursor: pointer; font-weight: bold; padding: 0 4px; }
         .clear-btn:hover { color: #ef4444; }
         .pin-tag { font-size: 8px; background-color: #e2e8f0; color: #64748b; padding: 1px 4px; border-radius: 4px; }
-        /* Update these lines in your CSS */
         /* Tightened Subject(12%) & Venue(12%), Widened Time/Weight(14%) */
         .col-subject { width: 12%; } 
         .col-venue { width: 12%; } 
@@ -103,33 +102,33 @@
         .toast-show { transform: translateY(0); opacity: 100; }
 
         @media print {
-    /* Hide all non-essential UI elements */
-    header, .control-deck, aside, .filter-bar, .modal, #toast {
-        display: none !important;
-    }
+            /* Hide all non-essential UI elements */
+            header, .control-deck, aside, .filter-bar, .modal, #toast {
+                display: none !important;
+            }
 
-    /* Make the workspace and table use the full page */
-    .workspace, main, .table-container, .table-scroll {
-        display: block !important;
-        overflow: visible !important;
-        width: 100% !important;
-    }
+            /* Make the workspace and table use the full page */
+            .workspace, main, .table-container, .table-scroll {
+                display: block !important;
+                overflow: visible !important;
+                width: 100% !important;
+            }
 
-    table {
-        width: 100% !important;
-        table-layout: auto !important;
-        border: 1px solid #000;
-    }
+            table {
+                width: 100% !important;
+                table-layout: auto !important;
+                border: 1px solid #000;
+            }
 
-    thead tr {
-        background-color: #000 !important;
-        color: #fff !important;
-        -webkit-print-color-adjust: exact; /* Ensures colors print */
-    }
+            thead tr {
+                background-color: #000 !important;
+                color: #fff !important;
+                -webkit-print-color-adjust: exact; /* Ensures colors print */
+            }
 
-    /* Optional: Ensure table rows don't break awkwardly across pages */
-    tr { page-break-inside: avoid; }
-}
+            /* Optional: Ensure table rows don't break awkwardly across pages */
+            tr { page-break-inside: avoid; }
+        }
     </style>
 </head>
 <body>
@@ -201,6 +200,14 @@
             <div class="sidebar-content">
                 <div class="sidebar-header">
                     <h2>Faculty Roster & Balances</h2>
+                    <div style="margin-top: 6px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <label style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">Sort:</label>
+                        <select id="roster-sort" onchange="window.drawRosterSidebar()" style="flex: 1; font-size: 11px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155; font-weight: bold;">
+                            <option value="original">Original List Order</option>
+                            <option value="asc">Total Hours (Ascending)</option>
+                            <option value="desc">Total Hours (Descending)</option>
+                        </select>
+                    </div>
                     <p>Drag elements out into vacancies table tracks.</p>
                 </div>
                 <div id="roster-box">
@@ -268,51 +275,76 @@
         </main>
     </div>
 
+    <!-- Split Modal -->
+    <div id="split-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px; height: auto;">
+            <div class="modal-header">
+                <h2 style="font-weight:bold; font-size:14px;">✂️ Manual Session Split</h2>
+                <div class="modal-close" onclick="window.closeSplitModal()">×</div>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: #475569;">Adjust the slider to determine the precise duration for each of the two resultant shifts.</p>
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-weight:bold; font-size: 14px; color:#0f172a;">
+                    <span id="split-val-1" style="color: #2563eb;">Shift A: 0.00h</span>
+                    <span id="split-val-2" style="color: #ea580c;">Shift B: 0.00h</span>
+                </div>
+                <input type="range" id="split-slider" style="width:100%; margin-bottom: 24px; cursor: pointer;" oninput="window.updateSplitReadouts()">
+                
+                <input type="hidden" id="split-session-id">
+                <input type="hidden" id="split-post-key">
+            </div>
+            <div class="modal-footer">
+                <button onclick="window.closeSplitModal()" style="margin-right: 8px; background: #e2e8f0; color: #334155;" class="btn-doc">Cancel</button>
+                <button onclick="window.confirmManualSplit()" class="btn-blue">Confirm Split</button>
+            </div>
+        </div>
+    </div>
+
     <div id="documentation-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 style="font-weight:bold; font-size:14px;">📖 Template Data Entry Shorthand Code Manual</h2>
                 <div class="modal-close" onclick="window.toggleDocumentationModal(false)">×</div>
             </div>
-<div class="modal-body">
-    <div class="modal-section">
-        <h3>👤 Sheet 1: Staff_Roster</h3>
-        <ul>
-            <li><strong>Discipline:</strong> Enter <strong>Y</strong> for Discipline Master/Mistress (+1.0h credit).</li>
-            <li><strong>Chinese / English / Maths:</strong> Enter <strong>Y</strong> to flag subject specialization.</li>
-            <li><strong>Ratio:</strong> Enter <strong>Y</strong> to apply the target invigilation multiplier to this colleague.</li>
-        </ul>
-    </div>
-    <div class="modal-section">
-        <h3>📅 Sheet 2: Availability</h3>
-        <ul>
-            <li><strong>Tokens:</strong> <strong>A</strong> (08:00-10:30), <strong>B</strong> (10:30-13:00), <strong>C</strong> (13:00-16:00).</li>
-            <li>Enter these letters under the specific Date column to mark a teacher as blocked.</li>
-        </ul>
-    </div>
-    <div class="modal-section">
-        <h3>⚙️ Sheet 3: Session_Rules</h3>
-        <ul>
-            <li><strong>Target_Type:</strong> Session_ID, Subject, or Form.</li>
-            <li><strong>Target_Value:</strong> The specific ID or name (e.g., "CES").</li>
-            <li><strong>Constraint_Condition:</strong> Use <strong>ONLY_CHINESE_TEACHERS</strong>, <strong>ONLY_ENGLISH_TEACHERS</strong>, or <strong>ONLY_MATHS_TEACHERS</strong>.</li>
-        </ul>
-    </div>
-    <div class="modal-section">
-        <h3>📊 Sheet 4: Exam_Master</h3>
-        <ul>
-            <li><strong>Structure:</strong> Columns for Session_ID, Date, Start Time, End Time, Form, Subject, Venue, and Posts Required.</li>
-            <li><strong>Posts Required:</strong> String code where <strong>C</strong> = Chief, <strong>I</strong> = Invigilator, <strong>B</strong> = Beginner, <strong>E</strong> = Ender.</li>
-        </ul>
-    </div>
-    <div class="modal-section">
-        <h3>📌 Sheet 5: Pre_Assignments</h3>
-        <ul>
-            <li><strong>Purpose:</strong> Pin specific teachers to sessions manually.</li>
-            <li><strong>Columns:</strong> Session_ID, Post (e.g., "Chief"), and StaffName (exact match from Staff_Roster).</li>
-        </ul>
-    </div>
-</div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h3>👤 Sheet 1: Staff_Roster</h3>
+                    <ul>
+                        <li><strong>Discipline:</strong> Enter <strong>Y</strong> for Discipline Master/Mistress (+1.0h credit).</li>
+                        <li><strong>Chinese / English / Maths:</strong> Enter <strong>Y</strong> to flag subject specialization.</li>
+                        <li><strong>Ratio:</strong> Enter <strong>Y</strong> to apply the target invigilation multiplier to this colleague.</li>
+                    </ul>
+                </div>
+                <div class="modal-section">
+                    <h3>📅 Sheet 2: Availability</h3>
+                    <ul>
+                        <li><strong>Tokens:</strong> <strong>A</strong> (08:00-10:30), <strong>B</strong> (10:30-13:00), <strong>C</strong> (13:00-16:00).</li>
+                        <li>Enter these letters under the specific Date column to mark a teacher as blocked.</li>
+                    </ul>
+                </div>
+                <div class="modal-section">
+                    <h3>⚙️ Sheet 3: Session_Rules</h3>
+                    <ul>
+                        <li><strong>Target_Type:</strong> Session_ID, Subject, or Form.</li>
+                        <li><strong>Target_Value:</strong> The specific ID or name (e.g., "CES").</li>
+                        <li><strong>Constraint_Condition:</strong> Use <strong>ONLY_CHINESE_TEACHERS</strong>, <strong>ONLY_ENGLISH_TEACHERS</strong>, or <strong>ONLY_MATHS_TEACHERS</strong>.</li>
+                    </ul>
+                </div>
+                <div class="modal-section">
+                    <h3>📊 Sheet 4: Exam_Master</h3>
+                    <ul>
+                        <li><strong>Structure:</strong> Columns for Session_ID, Date, Start Time, End Time, Form, Subject, Venue, and Posts Required.</li>
+                        <li><strong>Posts Required:</strong> String code where <strong>C</strong> = Chief, <strong>I</strong> = Invigilator, <strong>B</strong> = Beginner, <strong>E</strong> = Ender.</li>
+                    </ul>
+                </div>
+                <div class="modal-section">
+                    <h3>📌 Sheet 5: Pre_Assignments</h3>
+                    <ul>
+                        <li><strong>Purpose:</strong> Pin specific teachers to sessions manually.</li>
+                        <li><strong>Columns:</strong> Session_ID, Post (e.g., "Chief"), and StaffName (exact match from Staff_Roster).</li>
+                    </ul>
+                </div>
+            </div>
             <div class="modal-footer">
                 <button onclick="window.toggleDocumentationModal(false)" style="background:#0f172a; color:#ffffff;">Return to Allocation Board</button>
             </div>
@@ -334,7 +366,129 @@
                 }
             }
         };
-        // ROOT DECLARATION CHANNELS: Binds everything cleanly to the global execution context
+
+        // Modal Split Logic Functions
+        window.openSplitModal = function(sessionId, postKey) {
+            const session = window.sessionsData.find(s => s.id === sessionId);
+            const post = session.posts.find(p => p.key === postKey);
+            
+            document.getElementById('split-session-id').value = sessionId;
+            document.getElementById('split-post-key').value = postKey;
+            
+            const slider = document.getElementById('split-slider');
+            slider.min = 0.25;
+            slider.max = post.weight - 0.25;
+            slider.step = 0.25;
+            
+            // Set default to roughly half, aligned to 0.25 increments
+            let defaultVal = Math.floor((post.weight / 2) * 4) / 4;
+            if (defaultVal < 0.25) defaultVal = 0.25;
+            slider.value = defaultVal;
+            
+            window.updateSplitReadouts();
+            
+            const modal = document.getElementById("split-modal");
+            modal.classList.remove("hidden");
+        };
+
+        window.closeSplitModal = function() {
+            document.getElementById("split-modal").classList.add("hidden");
+        };
+
+        window.updateSplitReadouts = function() {
+            const slider = document.getElementById('split-slider');
+            const sessionId = document.getElementById('split-session-id').value;
+            const postKey = document.getElementById('split-post-key').value;
+            const session = window.sessionsData.find(s => s.id === sessionId);
+            const post = session.posts.find(p => p.key === postKey);
+            
+            const shift1Weight = parseFloat(slider.value);
+            const shift2Weight = post.weight - shift1Weight;
+            
+            document.getElementById('split-val-1').innerText = `Shift A: ${shift1Weight.toFixed(2)}h`;
+            document.getElementById('split-val-2').innerText = `Shift B: ${shift2Weight.toFixed(2)}h`;
+        };
+
+        window.confirmManualSplit = function() {
+            const sessionId = document.getElementById('split-session-id').value;
+            const postKey = document.getElementById('split-post-key').value;
+            const session = window.sessionsData.find(s => s.id === sessionId);
+            const postIdx = session.posts.findIndex(p => p.key === postKey);
+            const post = session.posts[postIdx];
+            
+            const shift1Weight = parseFloat(document.getElementById('split-slider').value);
+            const shift2Weight = post.weight - shift1Weight;
+            
+            const shift1Start = post.startBounds;
+            const shift1End = window.addHoursToTime(shift1Start, shift1Weight);
+            const shift2Start = shift1End;
+            const shift2End = post.endBounds;
+            
+            // Generate clean role strings, preventing weird stacking like "Invigilator 1 (Shift A) (Man. A)"
+            const cleanBaseRole = post.role.replace(" (Shift A)", "").replace(" (Shift B)", "");
+
+            const post1 = {
+                ...post, // Bring over original properties (staff, pinned, etc.)
+                role: cleanBaseRole + " (Man. A)",
+                key: post.key + "_M1",
+                time: shift1Start + " - " + shift1End,
+                weight: shift1Weight,
+                startBounds: shift1Start,
+                endBounds: shift1End,
+                isManualSplitFirst: true,
+                splitSiblingKey: post.key + "_M2",
+                manualSplitOriginal: JSON.parse(JSON.stringify(post)) // Deep copy original block for undo
+            };
+            
+            const post2 = {
+                role: cleanBaseRole + " (Man. B)",
+                key: post.key + "_M2",
+                time: shift2Start + " - " + shift2End,
+                weight: shift2Weight,
+                startBounds: shift2Start,
+                endBounds: shift2End,
+                staff: null, // Always empty for Drop
+                pinned: false,
+                isManualSplitSecond: true,
+                splitSiblingKey: post.key + "_M1"
+            };
+            
+            // Splice the single parent post out, insert the two resultant posts
+            session.posts.splice(postIdx, 1, post1, post2);
+            
+            window.closeSplitModal();
+            window.refreshAppPipeline();
+            window.fireToast("Session manually split into two segments! ✓");
+        };
+
+        window.undoManualSplit = function(sessionId, postKey) {
+            const session = window.sessionsData.find(s => s.id === sessionId);
+            const post1Idx = session.posts.findIndex(p => p.key === postKey);
+            const post1 = session.posts[post1Idx];
+            
+            const originalPost = post1.manualSplitOriginal;
+            // Persist whoever is currently assigned to Shift A into the restored full shift
+            originalPost.staff = post1.staff;
+            
+            const post2Idx = session.posts.findIndex(p => p.key === post1.splitSiblingKey);
+            
+            // Remove both split chunks safely
+            if (post1Idx > post2Idx) {
+                session.posts.splice(post1Idx, 1);
+                session.posts.splice(post2Idx, 1);
+            } else {
+                session.posts.splice(post2Idx, 1);
+                session.posts.splice(post1Idx, 1);
+            }
+            
+            // Restore original parent post
+            session.posts.splice(Math.min(post1Idx, post2Idx), 0, originalPost);
+            
+            window.refreshAppPipeline();
+            window.fireToast("Manual split reverted and shifts merged! ✓");
+        };
+
+        // ROOT DECLARATION CHANNELS
         window.staffRoster = {};
         window.staffOrderSequence = [];
         window.sessionsData = [];
@@ -429,7 +583,6 @@
             });
         };
 
-        // NEW BULLETPROOF FILE UPLOAD PARSER
         window.processLocalExcelWorkbook = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -445,7 +598,6 @@
                     </td></tr>`;
             }
 
-            // A tiny timeout forces the browser to actually show the "Processing..." message before it freezes up to read the file
             setTimeout(() => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -453,7 +605,6 @@
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array', cellDates: false });
 
-                        // Fuzzy Matching: Protects against accidental spaces or wrong casing in Excel tab names
                         const requiredSheets = ["Staff_Roster", "Availability", "Session_Rules", "Exam_Master", "Pre_Assignments"];
                         const actualSheets = Object.keys(workbook.Sheets);
 
@@ -489,7 +640,6 @@
                         console.error(err);
                         if (label) label.innerText = `📂 Choose/Upload Completed Data Workbook (.xlsx)...`;
                     } finally {
-                        // Safely reset the input so you can re-upload the exact same file repeatedly without refreshing
                         document.getElementById("excel-file-picker").value = '';
                     }
                 };
@@ -846,7 +996,6 @@
             reader.readAsText(file); event.target.value = '';
         };
 
-        // EXPLICIT GLOBAL WINDOW PLACEMENT FOR AUTOMATION CREDITS BALANCING
         window.computeOperationalHours = function() {
             Object.keys(window.staffRoster).forEach(name => {
                 window.staffRoster[name].totalHours = window.staffRoster[name].extraHours; window.staffRoster[name].dailyDuties = {};
@@ -891,13 +1040,10 @@
                             if (session.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return false;
                             if (session.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return false;
 
-                            // --- NEW RATIO TEACHER LOGIC ---
-                            // Strict constraint: Ratio teachers can ONLY be Invigilators in Hall/Covered Playground
                             if (t.isRatio) {
                                 const roleName = post.role.toLowerCase();
                                 const venueName = session.venue.toLowerCase();
                                 
-                                // Must include 'invigilator' but MUST NOT include 'chief'
                                 const isInvig = roleName.includes("invigilator") && !roleName.includes("chief");
                                 const isHallOrCover = venueName.includes("hall") || venueName.includes("cover") || venueName.includes("playground");
                                 
@@ -905,7 +1051,6 @@
                                     return false;
                                 }
                             }
-                            // -------------------------------
                             return true;
                         });
 
@@ -921,7 +1066,6 @@
                         const ratioScalar = parseFloat(document.getElementById("ratio-multiplier").value) || 2.0;
                         
                         targetSelectionPool.sort((a, b) => {
-                            // Standard staff divide by 1. Ratio staff divide by the scalar.
                             const effectiveHoursA = window.staffRoster[a].totalHours / (window.staffRoster[a].isRatio ? ratioScalar : 1.0);
                             const effectiveHoursB = window.staffRoster[b].totalHours / (window.staffRoster[b].isRatio ? ratioScalar : 1.0);
                             return (effectiveHoursA + Math.random() * 0.4) - (effectiveHoursB + Math.random() * 0.4);
@@ -942,7 +1086,7 @@
                             finalVariance = Math.max(...balanceHours) - Math.min(...balanceHours);
                             if (finalVariance <= (allowedVarianceWindow + 0.001)) { success = true; break; }
                         } else {
-                            success = true; break; // Failsafe if everyone is a ratio colleague
+                            success = true; break; 
                         }
                     }
                 }
@@ -976,7 +1120,27 @@
                 }
             }
 
-            window.staffOrderSequence.forEach((name) => {
+            const sortMode = document.getElementById("roster-sort") ? document.getElementById("roster-sort").value : "original";
+            let displaySequence = [...window.staffOrderSequence];
+            
+            if (sortMode !== "original") {
+                displaySequence.sort((a, b) => {
+                    const dataA = window.staffRoster[a];
+                    const dataB = window.staffRoster[b];
+                    
+                    // Priority Constraint: Ratio colleagues MUST be kept at the bottom of the list for asc/desc sorts
+                    if (dataA.isRatio && !dataB.isRatio) return 1;
+                    if (!dataA.isRatio && dataB.isRatio) return -1;
+                    
+                    if (sortMode === "asc") {
+                        return dataA.totalHours - dataB.totalHours;
+                    } else {
+                        return dataB.totalHours - dataA.totalHours;
+                    }
+                });
+            }
+
+            displaySequence.forEach((name) => {
                 const data = window.staffRoster[name];
                 if (!data) return;
 
@@ -1055,10 +1219,23 @@
                         `;
                     }
 
+                    // Identify if post eligible for manual splitting
+                    let splitButtonHTML = '';
+                    const formClean = String(session.form).trim().toUpperCase();
+                    const isJForm = (formClean === "1" || formClean === "2" || formClean === "J");
+                    
+                    if (post.isManualSplitFirst) {
+                        // Undo action on the split parent
+                        splitButtonHTML = `<button onclick="window.undoManualSplit('${session.id}', '${post.key}')" style="margin-top: 4px; font-size: 10px; padding: 2px 6px; background-color: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; font-weight: bold; display: block; width: 100%;">↩️ Undo Split</button>`;
+                    } else if (!isJForm && post.weight > 1.25 && !post.isManualSplitSecond && !post.isManualSplitFirst) {
+                        // Split action for unmodified items over 1.25h
+                        splitButtonHTML = `<button onclick="window.openSplitModal('${session.id}', '${post.key}')" style="margin-top: 4px; font-size: 10px; padding: 2px 6px; background-color: #e2e8f0; color: #475569; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; display: block; width: 100%;">✂️ Manual Split</button>`;
+                    }
+
                     rowTr.innerHTML = `
                         ${structuralCellsBundleHTML}
                         <td style="font-weight:bold; color:#334155; border-right:1px solid #e2e8f0;">${post.role}</td>
-                        <td style="font-family:monospace; color:#94a3b8; border-right:1px solid #e2e8f0;">${post.time}<br><span style="color:#475569; font-weight:bold;">(${post.weight.toFixed(2)}h)</span></td>
+                        <td style="font-family:monospace; color:#94a3b8; border-right:1px solid #e2e8f0;">${post.time}<br><span style="color:#475569; font-weight:bold;">(${post.weight.toFixed(2)}h)</span>${splitButtonHTML}</td>
                         <td style="padding: 4px 12px;">
                             <div class="dropzone" data-sid="${session.id}" data-key="${post.key}">
                                  ${post.staff ? `
@@ -1098,12 +1275,10 @@
             if (s.constraintRule === "ONLY_ENGLISH_TEACHERS" && !t.isEnglish) return window.fireToast(`Rule Violation: English Teacher lock.`);
             if (s.constraintRule === "ONLY_MATHS_TEACHERS" && !t.isMaths) return window.fireToast(`Rule Violation: Maths Teacher lock.`);
 
-            // --- NEW RATIO TEACHER LOGIC ---
             if (t.isRatio) {
                 const roleName = p.role.toLowerCase();
                 const venueName = s.venue.toLowerCase();
                 
-                // Must include 'invigilator' but MUST NOT include 'chief'
                 const isInvig = roleName.includes("invigilator") && !roleName.includes("chief");
                 const isHallOrCover = venueName.includes("hall") || venueName.includes("cover") || venueName.includes("playground");
                 
@@ -1111,7 +1286,7 @@
                     return window.fireToast(`Rule Violation: Ratio staff can only be regular Invigilators (not Chief) in Hall or Covered Playground.`);
                 }
             }
-            // -------------------------------
+            
             p.staff = teacherName; window.refreshAppPipeline();
         };
 
@@ -1151,9 +1326,9 @@
                             
                             let displayCode = "";
                             if (post.role.startsWith("Beginner")) {
-                                displayCode = `{BS${currentFormStringCode}`;
+                                displayCode = `{B${currentFormStringCode}`;
                             } else if (post.role.startsWith("Ender")) {
-                                displayCode = `{ES${currentFormStringCode}`;
+                                displayCode = `{E${currentFormStringCode}`;
                             } else {
                                 displayCode = `${post.weight}S${currentFormStringCode}`;
                             }
@@ -1195,7 +1370,6 @@
                     s.posts.forEach(p => { csv += `"${s.form}","${s.dateString}","${p.time}","${s.subject}","${s.venue}","${p.role}","${p.staff || 'UNASSIGNED'}"\n`; });
                 });
             } else {
-                // UPDATE: Added "Form" to the header
                 csv += "Teacher Name,Date,Venue Location,Form,Subject Target,Assigned Post Title,Duty Execution Window,Contributed Credit Hours Value\n";
                 
                 window.staffOrderSequence.forEach(tName => {
@@ -1206,7 +1380,6 @@
                         return window.getTimeSortWeight(a.session.timeWindow) - window.getTimeSortWeight(b.session.timeWindow);
                     });
                     teacherDuties.forEach(item => {
-                        // UPDATE: Added "${item.session.form}" to the row output
                         csv += `"${tName}","${item.session.dateString}","${item.session.venue}","${item.session.form}","${item.session.subject}","${item.post.role}","${item.post.time}","${item.post.weight.toFixed(2)}"\n`;
                     });
                 });
