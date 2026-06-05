@@ -1227,7 +1227,7 @@
                     if (post.isManualSplitFirst) {
                         // Undo action on the split parent
                         splitButtonHTML = `<button onclick="window.undoManualSplit('${session.id}', '${post.key}')" style="margin-top: 4px; font-size: 10px; padding: 2px 6px; background-color: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; font-weight: bold; display: block; width: 100%;">↩️ Undo Split</button>`;
-                    } else if (!isJForm && post.weight > 1.25 && !post.isManualSplitSecond && !post.isManualSplitFirst) {
+                    } else if (!isJForm && post.weight >= 1.25 && !post.isManualSplitSecond && !post.isManualSplitFirst) {
                         // Split action for unmodified items over 1.25h
                         splitButtonHTML = `<button onclick="window.openSplitModal('${session.id}', '${post.key}')" style="margin-top: 4px; font-size: 10px; padding: 2px 6px; background-color: #e2e8f0; color: #475569; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; display: block; width: 100%;">✂️ Manual Split</button>`;
                     }
@@ -1326,9 +1326,9 @@
                             
                             let displayCode = "";
                             if (post.role.startsWith("Beginner")) {
-                                displayCode = `{B${currentFormStringCode}`;
+                                displayCode = `{BS${currentFormStringCode}`;
                             } else if (post.role.startsWith("Ender")) {
-                                displayCode = `{E${currentFormStringCode}`;
+                                displayCode = `{ES${currentFormStringCode}`;
                             } else {
                                 displayCode = `${post.weight}S${currentFormStringCode}`;
                             }
