@@ -671,7 +671,8 @@
                     isRatio: String(row["Ratio"] || "").toUpperCase().trim() === "Y",
                     extraHours: isDisc ? 1.0 : 0.0,
                     unavailableBlocks: [],
-                    rawAvailabilityRow: row 
+                    isDummy: String(row["Dummy"] || "").toUpperCase().trim() === "Y", // Add this line
+                    rawAvailabilityRow: row
                 };
                 window.staffOrderSequence.push(sName); 
             });
@@ -1033,6 +1034,7 @@
                         
                         let basePool = Object.keys(window.staffRoster).filter(tName => {
                             const t = window.staffRoster[tName];
+                            if (t.isDummy) return false;
                             
                             if (window.checkIsTeacherTimeConflicting(tName, session.rawDateKey, post.startBounds, post.endBounds)) return false;
                             if (t.dailyDuties && t.dailyDuties[session.dateString] >= 1) return false;
