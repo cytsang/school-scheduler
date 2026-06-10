@@ -245,6 +245,13 @@
                         <option value="ALL">-- All Forms --</option>
                     </select>
                 </div>
+                <div style="width:1px; height:16px; background:#e2e8f0;"></div>
+                <div>
+                    <label style="font-weight:600; color:#475569;">Filter by Teacher:</label>
+                    <select id="filter-teacher" onchange="window.applyTableFilters()">
+                        <option value="ALL">-- All Teachers --</option>
+                    </select>
+                </div>
             </div>
 
             <div class="table-container">
@@ -901,66 +908,82 @@
             });
         }
 
-        window.populateFilterDropdownOptions = function() {
-            const daySelect = document.getElementById("filter-day");
-            const formSelect = document.getElementById("filter-form");
-            if (!daySelect || !formSelect) return;
-            
-            daySelect.innerHTML = `<option value="ALL">-- All Days --</option>`;
-            formSelect.innerHTML = `<option value="ALL">-- All Forms --</option>`;
-            
-            const uniqueDaysSet = new Set();
-            const uniqueFormsSet = new Set();
-            
-            window.sessionsData.forEach(s => {
-                if (s.dateString) uniqueDaysSet.add(s.dateString);
-                
-                if (s.form) {
-                    const fClean = String(s.form).trim();
-                    if (fClean === "J") {
-                        uniqueFormsSet.add("1"); uniqueFormsSet.add("2");
-                    } else if (fClean === "S") {
-                        uniqueFormsSet.add("4"); uniqueFormsSet.add("5");
-                    } else {
-                        uniqueFormsSet.add(fClean);
-                    }
-                }
-            });
-            
-            const sortedDays = [...uniqueDaysSet].sort((a, b) => window.getDateSortWeight(a) - window.getDateSortWeight(b));
-            sortedDays.forEach(day => {
-                daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
-            });
-            
-            const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
-            sortedForms.forEach(form => {
-                formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
-            });
-            
-            daySelect.value = window.activeDayFilter;
-            formSelect.value = window.activeFormFilter;
-        };
-
-        window.applyTableFilters = function() {
-            window.activeDayFilter = document.getElementById("filter-day").value;
-            window.activeFormFilter = document.getElementById("filter-form").value;
-            const allBtn = document.getElementById("btn-filter-all");
-            if (window.activeDayFilter === "ALL" && window.activeFormFilter === "ALL") {
-                if (allBtn) allBtn.className = "btn-all-active";
+window.populateFilterDropdownOptions = function() {
+    const daySelect = document.getElementById("filter-day");
+    const formSelect = document.getElementById("filter-form");
+    const teacherSelect = document.getElementById("filter-teacher"); // Added here for safety
+    if (!daySelect || !formSelect || !teacherSelect) return;
+    
+    daySelect.innerHTML = `<option value="ALL">-- All Days --</option>`;
+    formSelect.innerHTML = `<option value="ALL">-- All Forms --</option>`;
+    
+    const uniqueDaysSet = new Set();
+    const uniqueFormsSet = new Set();
+    
+    window.sessionsData.forEach(s => {
+        if (s.dateString) uniqueDaysSet.add(s.dateString);
+        
+        if (s.form) {
+            const fClean = String(s.form).trim();
+            if (fClean === "J") {
+                uniqueFormsSet.add("1"); uniqueFormsSet.add("2");
+            } else if (fClean === "S") {
+                uniqueFormsSet.add("4"); uniqueFormsSet.add("5");
             } else {
-                if (allBtn) allBtn.className = "btn-all-inactive";
+                uniqueFormsSet.add(fClean);
             }
-            window.drawGridCanvas();
-        };
+        }
+    }); // <--- THE LOOP ENDS HERE
+    
+    // --- MOVED OUTSIDE THE LOOP ---
+    teacherSelect.innerHTML = `<option value="ALL">-- All Teachers --</option>`;
+    Object.keys(window.staffRoster).sort().forEach(tName => {
+        teacherSelect.innerHTML += `<option value="${tName}">${tName}</option>`;
+    });
+    teacherSelect.value = window.activeTeacherFilter || "ALL";
+    // ------------------------------
+    
+    const sortedDays = [...uniqueDaysSet].sort((a, b) => window.getDateSortWeight(a) - window.getDateSortWeight(b));
+    sortedDays.forEach(day => {
+        daySelect.innerHTML += `<option value="${day}">Day: ${day}</option>`;
+    });
+    
+    const sortedForms = [...uniqueFormsSet].sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
+    sortedForms.forEach(form => {
+        formSelect.innerHTML += `<option value="${form}">Form ${form}</option>`;
+    });
+    
+    daySelect.value = window.activeDayFilter;
+    formSelect.value = window.activeFormFilter;
+};
+
+        window.activeTeacherFilter = "ALL";
+        
+window.applyTableFilters = function() {
+    window.activeDayFilter = document.getElementById("filter-day").value;
+    window.activeFormFilter = document.getElementById("filter-form").value;
+    window.activeTeacherFilter = document.getElementById("filter-teacher").value;
+    
+    const allBtn = document.getElementById("btn-filter-all");
+    
+    // Added the teacher filter check here
+    if (window.activeDayFilter === "ALL" && window.activeFormFilter === "ALL" && window.activeTeacherFilter === "ALL") {
+        if (allBtn) allBtn.className = "btn-all-active";
+    } else {
+        if (allBtn) allBtn.className = "btn-all-inactive";
+    }
+    window.drawGridCanvas();
+};
 
         window.clearTableFilters = function() {
-            window.activeDayFilter = "ALL"; window.activeFormFilter = "ALL";
+            window.activeDayFilter = "ALL"; window.activeFormFilter = "ALL"; window.activeTeacherFilter = "ALL";
             const daySel = document.getElementById("filter-day");
             const formSel = document.getElementById("filter-form");
             if (daySel) daySel.value = "ALL";
             if (formSel) formSel.value = "ALL";
             const allBtn = document.getElementById("btn-filter-all");
             if (allBtn) allBtn.className = "btn-all-active";
+            document.getElementById("filter-teacher").value = "ALL";
             window.drawGridCanvas();
         };
 
@@ -1186,6 +1209,12 @@
                         }
                     }
                 }
+                if (window.activeTeacherFilter !== "ALL") {
+                // Only show session if the teacher is assigned to at least one post in this session
+                const hasTeacher = session.posts.some(p => p.staff === window.activeTeacherFilter);
+                if (!hasTeacher) return false;
+            }
+    
                 return true;
             });
 
