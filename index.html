@@ -252,6 +252,11 @@
                         <option value="ALL">-- All Teachers --</option>
                     </select>
                 </div>
+                <div style="width:1px; height:16px; background:#e2e8f0;"></div>
+                <div style="display: flex; align-items: center; gap: 6px; padding-left: 4px;">
+                    <input type="checkbox" id="filter-unassigned" onchange="window.applyTableFilters()" style="cursor: pointer; width: 14px; height: 14px; accent-color: #ea580c;">
+                    <label for="filter-unassigned" style="font-weight:700; color:#ea580c; cursor: pointer; font-size: 11px; text-transform: uppercase;">⚠️ Show Unassigned</label>
+                </div>
             </div>
 
             <div class="table-container">
@@ -958,16 +963,18 @@ window.populateFilterDropdownOptions = function() {
 };
 
         window.activeTeacherFilter = "ALL";
+        window.showUnassignedOnly = false;
         
 window.applyTableFilters = function() {
     window.activeDayFilter = document.getElementById("filter-day").value;
     window.activeFormFilter = document.getElementById("filter-form").value;
     window.activeTeacherFilter = document.getElementById("filter-teacher").value;
+    window.showUnassignedOnly = document.getElementById("filter-unassigned").checked;
     
     const allBtn = document.getElementById("btn-filter-all");
     
     // Added the teacher filter check here
-    if (window.activeDayFilter === "ALL" && window.activeFormFilter === "ALL" && window.activeTeacherFilter === "ALL") {
+    if (window.activeDayFilter === "ALL" && window.activeFormFilter === "ALL" && window.activeTeacherFilter === "ALL" && !window.showUnassignedOnly) {
         if (allBtn) allBtn.className = "btn-all-active";
     } else {
         if (allBtn) allBtn.className = "btn-all-inactive";
@@ -976,11 +983,15 @@ window.applyTableFilters = function() {
 };
 
         window.clearTableFilters = function() {
-            window.activeDayFilter = "ALL"; window.activeFormFilter = "ALL"; window.activeTeacherFilter = "ALL";
+            window.activeDayFilter = "ALL"; window.activeFormFilter = "ALL"; window.activeTeacherFilter = "ALL"; window.showUnassignedOnly = false;
             const daySel = document.getElementById("filter-day");
             const formSel = document.getElementById("filter-form");
+            const unassignedChk = document.getElementById("filter-unassigned");
+            
             if (daySel) daySel.value = "ALL";
             if (formSel) formSel.value = "ALL";
+            if (unassignedChk) unassignedChk.checked = false;
+            
             const allBtn = document.getElementById("btn-filter-all");
             if (allBtn) allBtn.className = "btn-all-active";
             document.getElementById("filter-teacher").value = "ALL";
@@ -1214,7 +1225,12 @@ window.applyTableFilters = function() {
                 const hasTeacher = session.posts.some(p => p.staff === window.activeTeacherFilter);
                 if (!hasTeacher) return false;
             }
-    
+
+                if (window.showUnassignedOnly) {
+        // Only show this session if AT LEAST ONE post has no staff assigned
+        const hasUnassigned = session.posts.some(p => p.staff === null);
+        if (!hasUnassigned) return false;
+    }
                 return true;
             });
 
