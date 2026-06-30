@@ -480,13 +480,16 @@
             const post1Idx = session.posts.findIndex(p => p.key === postKey);
             const post1 = session.posts[post1Idx];
             
-            const originalPost = post1.manualSplitOriginal;
+            // Deep copy to ensure clean state restoration
+            const originalPost = JSON.parse(JSON.stringify(post1.manualSplitOriginal));
+            
             // Persist whoever is currently assigned to Shift A into the restored full shift
             originalPost.staff = post1.staff;
+            originalPost.pinned = post1.pinned; // Transfer pin state if applicable
             
             const post2Idx = session.posts.findIndex(p => p.key === post1.splitSiblingKey);
             
-            // Remove both split chunks safely
+            // Remove both split chunks safely regardless of array order
             if (post1Idx > post2Idx) {
                 session.posts.splice(post1Idx, 1);
                 session.posts.splice(post2Idx, 1);
@@ -495,11 +498,11 @@
                 session.posts.splice(post1Idx, 1);
             }
             
-            // Restore original parent post
+            // Restore original parent post as a single unified block
             session.posts.splice(Math.min(post1Idx, post2Idx), 0, originalPost);
             
             window.refreshAppPipeline();
-            window.fireToast("Manual split reverted and shifts merged! ✓");
+            window.fireToast("Shifts merged successfully! Shift A assignee retained. ✓");
         };
 
         // ROOT DECLARATION CHANNELS
@@ -840,30 +843,50 @@
                     let invigCounter = 1;
 
                     tokens.forEach(token => {
-                        if (token === "C") {
-                            if (shouldTruncate) {
-                                session.posts.push(window.createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration, startTimeStr, window.addHoursToTime(startTimeStr, shiftADuration)));
-                                session.posts.push(window.createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration, window.addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
-                            } else {
-                                session.posts.push(window.createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr));
-                            }
-                        } else if (token === "I") {
-                            const currentLabel = "Invigilator " + invigCounter;
-                            const currentKey = expandedSessionId + "-I_" + invigCounter;
-                            invigCounter++;
-
-                            if (shouldTruncate) {
-                                session.posts.push(window.createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration, startTimeStr, window.addHoursToTime(startTimeStr, shiftADuration)));
-                                session.posts.push(window.createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration, window.addHoursToTime(startTimeStr, shiftADuration), endTimeStr));
-                            } else {
-                                session.posts.push(window.createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr));
-                            }
-                        } else if (token === "B") {
-                            session.posts.push(window.createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25, startTimeStr, endTimeStr));
-                        } else if (token === "E") {
-                            session.posts.push(window.createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25, startTimeStr, endTimeStr));
-                        }
-                    });
+                                            if (token === "C") {
+                                                if (shouldTruncate) {
+                                                    const postA = window.createPostObject("Chief (Shift A)", expandedSessionId + "-C_A", shiftATimeWindow, shiftADuration, startTimeStr, window.addHoursToTime(startTimeStr, shiftADuration));
+                                                    const postB = window.createPostObject("Chief (Shift B)", expandedSessionId + "-C_B", shiftBTimeWindow, shiftBDuration, window.addHoursToTime(startTimeStr, shiftADuration), endTimeStr);
+                                                    
+                                                    // Map auto-split as a mergeable pair
+                                                    postA.isManualSplitFirst = true;
+                                                    postA.splitSiblingKey = expandedSessionId + "-C_B";
+                                                    postA.manualSplitOriginal = window.createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr);
+                                                    
+                                                    postB.isManualSplitSecond = true;
+                                                    postB.splitSiblingKey = expandedSessionId + "-C_A";
+                    
+                                                    session.posts.push(postA, postB);
+                                                } else {
+                                                    session.posts.push(window.createPostObject("Chief Invigilator", expandedSessionId + "-C", session.timeWindow, rawDuration, startTimeStr, endTimeStr));
+                                                }
+                                            } else if (token === "I") {
+                                                const currentLabel = "Invigilator " + invigCounter;
+                                                const currentKey = expandedSessionId + "-I_" + invigCounter;
+                                                invigCounter++;
+                    
+                                                if (shouldTruncate) {
+                                                    const postA = window.createPostObject(currentLabel + " (Shift A)", currentKey + "_A", shiftATimeWindow, shiftADuration, startTimeStr, window.addHoursToTime(startTimeStr, shiftADuration));
+                                                    const postB = window.createPostObject(currentLabel + " (Shift B)", currentKey + "_B", shiftBTimeWindow, shiftBDuration, window.addHoursToTime(startTimeStr, shiftADuration), endTimeStr);
+                                                    
+                                                    // Map auto-split as a mergeable pair
+                                                    postA.isManualSplitFirst = true;
+                                                    postA.splitSiblingKey = currentKey + "_B";
+                                                    postA.manualSplitOriginal = window.createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr);
+                                                    
+                                                    postB.isManualSplitSecond = true;
+                                                    postB.splitSiblingKey = currentKey + "_A";
+                    
+                                                    session.posts.push(postA, postB);
+                                                } else {
+                                                    session.posts.push(window.createPostObject(currentLabel, currentKey, session.timeWindow, rawDuration, startTimeStr, endTimeStr));
+                                                }
+                                            } else if (token === "B") {
+                                                session.posts.push(window.createPostObject("Beginner", expandedSessionId + "-B", "Flat Credit", 0.25, startTimeStr, endTimeStr));
+                                            } else if (token === "E") {
+                                                session.posts.push(window.createPostObject("Ender", expandedSessionId + "-E", "Flat Credit", 0.25, startTimeStr, endTimeStr));
+                                            }
+                                        });
 
                     window.sessionsData.push(session);
                 }
@@ -1034,17 +1057,40 @@ window.applyTableFilters = function() {
         };
 
         window.computeOperationalHours = function() {
+            // Reset counters and set up an oral flag tracker
             Object.keys(window.staffRoster).forEach(name => {
-                window.staffRoster[name].totalHours = window.staffRoster[name].extraHours; window.staffRoster[name].dailyDuties = {};
+                window.staffRoster[name].totalHours = window.staffRoster[name].extraHours; 
+                window.staffRoster[name].dailyDuties = {};
+                window.staffRoster[name].hasOralSessions = false; // New tracker
             });
+        
             window.sessionsData.forEach(session => {
+                // Case-insensitive check for the word "oral"
+                const isOralExam = String(session.subject || "").toLowerCase().includes("oral");
+        
                 session.posts.forEach(post => {
                     if (post.staff && window.staffRoster[post.staff]) {
-                        window.staffRoster[post.staff].totalHours += post.weight;
-                        if (!window.staffRoster[post.staff].dailyDuties[session.dateString]) window.staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                        if (isOralExam) {
+                            // Flag that they are doing an oral session (do not add weight yet)
+                            window.staffRoster[post.staff].hasOralSessions = true;
+                        } else {
+                            // Standard hour accumulation
+                            window.staffRoster[post.staff].totalHours += post.weight;
+                        }
+                        
+                        if (!window.staffRoster[post.staff].dailyDuties[session.dateString]) {
+                            window.staffRoster[post.staff].dailyDuties[session.dateString] = 0;
+                        }
                         window.staffRoster[post.staff].dailyDuties[session.dateString]++;
                     }
                 });
+            });
+        
+            // Final Pass: Apply the flat 0.5h cap for teachers who had ANY oral duties
+            Object.keys(window.staffRoster).forEach(name => {
+                if (window.staffRoster[name].hasOralSessions) {
+                    window.staffRoster[name].totalHours += 0.5;
+                }
             });
         };
 
