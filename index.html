@@ -1164,7 +1164,7 @@ window.applyTableFilters = function() {
                 }
                 if (!brokenSlotDetected) {
                     window.computeOperationalHours();
-                    const standardStaff = Object.values(window.staffRoster).filter(t => !t.isRatio);
+                    const standardStaff = Object.values(window.staffRoster).filter(t => !t.isRatio && !t.isDummy);
                         if (standardStaff.length > 0) {
                             const balanceHours = standardStaff.map(t => t.totalHours);
                             finalVariance = Math.max(...balanceHours) - Math.min(...balanceHours);
@@ -1186,7 +1186,7 @@ window.applyTableFilters = function() {
             container.innerHTML = "";
             
             const allowedVarianceWindow = parseFloat(document.getElementById("variance-tolerance").value);
-            const standardStaff = Object.values(window.staffRoster).filter(t => !t.isRatio);
+            const standardStaff = Object.values(window.staffRoster).filter(t => !t.isRatio && !t.isDummy);
             const balanceHours = standardStaff.map(t => t.totalHours);
             
             if (balanceHours.length > 0) {
